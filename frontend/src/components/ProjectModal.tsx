@@ -93,7 +93,7 @@ export default function ProjectModal({ project, onSave, onDelete, onClose }: Pro
               <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">
                 キャンセル
               </button>
-              <button type="submit" className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700">
+              <button type="submit" className="px-4 py-2 text-sm bg-brand-400 text-white rounded-md hover:bg-brand-500 transition-colors">
                 {project ? "更新" : "作成"}
               </button>
             </div>

@@ -24,10 +24,10 @@ export default function LoginPage({ onLogin }: Props) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-brand-50">
       <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-center mb-1">TaskBoard</h1>
-        <p className="text-sm text-gray-400 text-center mb-6">ログイン</p>
+        <h1 className="text-2xl font-bold text-center text-brand-900 mb-1">TaskBoard</h1>
+        <p className="text-sm text-brand-400 text-center mb-6">ログイン</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -40,7 +40,7 @@ export default function LoginPage({ onLogin }: Props) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border rounded-md px-3 py-2 text-sm"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
               placeholder="tanaka@example.com"
               required
             />
@@ -52,7 +52,7 @@ export default function LoginPage({ onLogin }: Props) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border rounded-md px-3 py-2 text-sm"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
               placeholder="パスワード"
               required
             />
@@ -61,7 +61,7 @@ export default function LoginPage({ onLogin }: Props) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50"
+            className="w-full py-2 bg-brand-400 text-white text-sm font-medium rounded-md hover:bg-brand-500 disabled:opacity-50 transition-colors"
           >
             {loading ? "ログイン中..." : "ログイン"}
           </button>

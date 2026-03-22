@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { Issue, User } from "../types.ts";
 import { STATUSES, PRIORITIES, TYPES } from "../types.ts";
 
@@ -12,6 +13,28 @@ export default function IssueTable({ issues, users, onClickIssue }: Props) {
   const getStatus = (id: number) => STATUSES.find((s) => s.id === id)!;
   const getPriority = (id: number) => PRIORITIES.find((p) => p.id === id)!;
   const getType = (id: number) => TYPES.find((t) => t.id === id)!;
+
+  // ツリー構造に並び替え: 親課題の直後に子課題を配置
+  const treeIssues = useMemo(() => {
+    const parents = issues.filter((i) => !i.parent_issue_id);
+    const childMap = new Map<number, Issue[]>();
+    for (const i of issues) {
+      if (i.parent_issue_id) {
+        const children = childMap.get(i.parent_issue_id) || [];
+        children.push(i);
+        childMap.set(i.parent_issue_id, children);
+      }
+    }
+    const result: { issue: Issue; isChild: boolean }[] = [];
+    for (const parent of parents) {
+      result.push({ issue: parent, isChild: false });
+      const children = childMap.get(parent.id) || [];
+      for (const child of children) {
+        result.push({ issue: child, isChild: true });
+      }
+    }
+    return result;
+  }, [issues]);
 
   if (issues.length === 0) {
     return <p className="text-gray-400 text-center py-16">課題がありません</p>;
@@ -32,7 +55,7 @@ export default function IssueTable({ issues, users, onClickIssue }: Props) {
           </tr>
         </thead>
         <tbody className="divide-y">
-          {issues.map((issue) => {
+          {treeIssues.map(({ issue, isChild }) => {
             const status = getStatus(issue.status_id);
             const priority = getPriority(issue.priority_id);
             const type = getType(issue.type_id);
@@ -41,11 +64,16 @@ export default function IssueTable({ issues, users, onClickIssue }: Props) {
               <tr
                 key={issue.id}
                 onClick={() => onClickIssue(issue)}
-                className="hover:bg-gray-50 cursor-pointer transition-colors"
+                className={`hover:bg-gray-50 cursor-pointer transition-colors ${isChild ? "bg-gray-50/50" : ""}`}
               >
-                <td className="px-4 py-3 font-mono text-xs text-gray-500">{issue.issue_key}</td>
+                <td className="px-4 py-3 font-mono text-xs text-gray-500">
+                  {isChild && <span className="text-gray-300 mr-1">└</span>}
+                  {issue.issue_key}
+                </td>
                 <td className="px-4 py-3 text-gray-600">{type.name}</td>
-                <td className="px-4 py-3 font-medium text-gray-900">{issue.subject}</td>
+                <td className={`px-4 py-3 font-medium text-gray-900 ${isChild ? "pl-8" : ""}`}>
+                  {issue.subject}
+                </td>
                 <td className="px-4 py-3">
                   <span
                     className="inline-block px-2 py-0.5 rounded text-xs font-medium"

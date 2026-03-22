@@ -43,6 +43,7 @@ export function initDatabase(): void {
       created_by INTEGER NOT NULL REFERENCES users(id),
       start_date TEXT,
       due_date TEXT,
+      parent_issue_id INTEGER REFERENCES issues(id) ON DELETE SET NULL,
       resolution_id INTEGER,
       created_at TEXT DEFAULT (datetime('now', 'localtime')),
       updated_at TEXT DEFAULT (datetime('now', 'localtime')),
@@ -73,6 +74,11 @@ export function initDatabase(): void {
   } catch {
     // カラムが既に存在する場合は無視
   }
+  try {
+    db.exec("ALTER TABLE issues ADD COLUMN parent_issue_id INTEGER REFERENCES issues(id) ON DELETE SET NULL");
+  } catch {
+    // カラムが既に存在する場合は無視
+  }
 
   // シードデータ（テーブルが空の場合のみ）
   const userCount = db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
@@ -98,6 +104,12 @@ export function initDatabase(): void {
     insertIssue.run(project.id, 4, "利用規約ページの追加", "利用規約とプライバシーポリシーのページを追加", 4, 3, 3, 3, 1, "2026-03-30");
     // 完了課題に完了理由を設定
     db.prepare("UPDATE issues SET resolution_id = 1 WHERE project_id = ? AND issue_number = 4").run(project.id);
+
+    // 親子課題のサンプル: SAMPLE-1 の子課題を2件追加
+    const parentIssue = db.prepare("SELECT id FROM issues WHERE project_id = ? AND issue_number = 1").get(project.id) as { id: number };
+    insertIssue.run(project.id, 5, "ログイン画面のHTML/CSSコーディング", "モックアップに基づいてコーディング", 1, 1, 1, 1, 1, null);
+    insertIssue.run(project.id, 6, "ログインフォームのバリデーション実装", "メール形式チェック、パスワード長チェック", 1, 2, 1, 2, 1, null);
+    db.prepare("UPDATE issues SET parent_issue_id = ? WHERE project_id = ? AND issue_number IN (5, 6)").run(parentIssue.id, project.id);
   }
 }
 

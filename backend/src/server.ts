@@ -188,7 +188,7 @@ app.get("/api/projects/:projectId/issues", (req, res) => {
 
 app.post("/api/projects/:projectId/issues", (req, res) => {
   const { projectId } = req.params;
-  const { subject, description, status_id, priority_id, type_id, assignee_id, created_by, start_date, due_date, resolution_id } = req.body;
+  const { subject, description, status_id, priority_id, type_id, assignee_id, created_by, start_date, due_date, resolution_id, parent_issue_id } = req.body;
 
   if (!subject) {
     res.status(400).json({ error: "subject は必須です" });
@@ -205,6 +205,19 @@ app.post("/api/projects/:projectId/issues", (req, res) => {
     return;
   }
 
+  // 親課題バリデーション
+  if (parent_issue_id) {
+    const parent = db.prepare("SELECT id, project_id, parent_issue_id FROM issues WHERE id = ?").get(parent_issue_id) as any;
+    if (!parent || parent.project_id !== Number(projectId)) {
+      res.status(400).json({ error: "親課題が同一プロジェクト内に見つかりません" });
+      return;
+    }
+    if (parent.parent_issue_id) {
+      res.status(400).json({ error: "孫課題は作成できません（最大2階層）" });
+      return;
+    }
+  }
+
   // 次の課題番号を取得
   const maxNum = db.prepare(
     "SELECT COALESCE(MAX(issue_number), 0) as max_num FROM issues WHERE project_id = ?"
@@ -212,14 +225,15 @@ app.post("/api/projects/:projectId/issues", (req, res) => {
   const issueNumber = maxNum.max_num + 1;
 
   const result = db.prepare(`
-    INSERT INTO issues (project_id, issue_number, subject, description, status_id, priority_id, type_id, assignee_id, created_by, start_date, due_date, resolution_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO issues (project_id, issue_number, subject, description, status_id, priority_id, type_id, assignee_id, created_by, start_date, due_date, resolution_id, parent_issue_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     projectId, issueNumber, subject, description || "",
     status_id || 1, priority_id || 2, type_id || 1,
     assignee_id || null, created_by || 1,
     start_date || null, due_date || null,
-    (status_id || 1) === 4 ? (resolution_id || null) : null
+    (status_id || 1) === 4 ? (resolution_id || null) : null,
+    parent_issue_id || null
   );
 
   const issue = db.prepare(`
@@ -244,7 +258,7 @@ app.get("/api/projects/:projectId/issues/:issueId", (req, res) => {
 });
 
 app.put("/api/projects/:projectId/issues/:issueId", (req, res) => {
-  const { subject, description, status_id, priority_id, type_id, assignee_id, start_date, due_date, resolution_id } = req.body;
+  const { subject, description, status_id, priority_id, type_id, assignee_id, start_date, due_date, resolution_id, parent_issue_id } = req.body;
   if (!subject) {
     res.status(400).json({ error: "subject は必須です" });
     return;
@@ -254,15 +268,39 @@ app.put("/api/projects/:projectId/issues/:issueId", (req, res) => {
     return;
   }
 
+  // 親課題バリデーション
+  const effectiveParent = parent_issue_id || null;
+  if (effectiveParent) {
+    const parent = db.prepare("SELECT id, project_id, parent_issue_id FROM issues WHERE id = ?").get(effectiveParent) as any;
+    if (!parent || parent.project_id !== Number(req.params.projectId)) {
+      res.status(400).json({ error: "親課題が同一プロジェクト内に見つかりません" });
+      return;
+    }
+    if (parent.parent_issue_id) {
+      res.status(400).json({ error: "孫課題は作成できません（最大2階層）" });
+      return;
+    }
+    if (parent.id === Number(req.params.issueId)) {
+      res.status(400).json({ error: "自分自身を親課題にはできません" });
+      return;
+    }
+    // 自分が既に親課題になっている場合、子にはなれない
+    const children = db.prepare("SELECT id FROM issues WHERE parent_issue_id = ?").all(Number(req.params.issueId));
+    if (children.length > 0) {
+      res.status(400).json({ error: "子課題を持つ課題は他の課題の子にはなれません" });
+      return;
+    }
+  }
+
   const effectiveResolution = (status_id || 1) === 4 ? (resolution_id || null) : null;
 
   const result = db.prepare(`
     UPDATE issues SET subject = ?, description = ?, status_id = ?, priority_id = ?, type_id = ?,
-    assignee_id = ?, start_date = ?, due_date = ?, resolution_id = ?, updated_at = datetime('now', 'localtime')
+    assignee_id = ?, start_date = ?, due_date = ?, resolution_id = ?, parent_issue_id = ?, updated_at = datetime('now', 'localtime')
     WHERE id = ? AND project_id = ?
   `).run(
     subject, description || "", status_id || 1, priority_id || 2, type_id || 1,
-    assignee_id || null, start_date || null, due_date || null, effectiveResolution,
+    assignee_id || null, start_date || null, due_date || null, effectiveResolution, effectiveParent,
     req.params.issueId, req.params.projectId
   );
   if (result.changes === 0) {

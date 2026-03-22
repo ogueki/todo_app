@@ -5,14 +5,16 @@ import * as api from "../api.ts";
 
 interface Props {
   issue: Issue | null; // null = 新規作成
+  issues: Issue[]; // 親課題選択用
   users: User[];
   currentUserId: number;
+  defaultParentIssueId?: number | null;
   onSave: (data: Partial<Issue>) => void;
   onDelete?: () => void;
   onClose: () => void;
 }
 
-export default function IssueModal({ issue, users, currentUserId, onSave, onDelete, onClose }: Props) {
+export default function IssueModal({ issue, issues, users, currentUserId, defaultParentIssueId, onSave, onDelete, onClose }: Props) {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [statusId, setStatusId] = useState(1);
@@ -22,6 +24,7 @@ export default function IssueModal({ issue, users, currentUserId, onSave, onDele
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [resolutionId, setResolutionId] = useState<number | "">("");
+  const [parentIssueId, setParentIssueId] = useState<number | "">(defaultParentIssueId ?? "");
   const [error, setError] = useState("");
 
   // コメント
@@ -39,6 +42,7 @@ export default function IssueModal({ issue, users, currentUserId, onSave, onDele
       setStartDate(issue.start_date || "");
       setDueDate(issue.due_date || "");
       setResolutionId(issue.resolution_id ?? "");
+      setParentIssueId(issue.parent_issue_id ?? "");
       // コメント読み込み
       api.fetchComments(issue.id).then(setComments);
     }
@@ -64,6 +68,7 @@ export default function IssueModal({ issue, users, currentUserId, onSave, onDele
       start_date: startDate || null,
       due_date: dueDate || null,
       resolution_id: statusId === 4 && resolutionId !== "" ? Number(resolutionId) : null,
+      parent_issue_id: parentIssueId === "" ? null : Number(parentIssueId),
     });
   };
 
@@ -129,6 +134,17 @@ export default function IssueModal({ issue, users, currentUserId, onSave, onDele
             </div>
           </div>
 
+          {/* 親課題 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">親課題</label>
+            <select value={parentIssueId} onChange={(e) => setParentIssueId(e.target.value === "" ? "" : Number(e.target.value))} className={selectClass}>
+              <option value="">なし</option>
+              {issues
+                .filter((i) => i.id !== issue?.id && !i.parent_issue_id)
+                .map((i) => <option key={i.id} value={i.id}>{i.issue_key} {i.subject}</option>)}
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">開始日</label>
@@ -165,7 +181,7 @@ export default function IssueModal({ issue, users, currentUserId, onSave, onDele
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">キャンセル</button>
-              <button type="submit" className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700">
+              <button type="submit" className="px-4 py-2 text-sm bg-brand-400 text-white rounded-md hover:bg-brand-500 transition-colors">
                 {issue ? "更新" : "追加"}
               </button>
             </div>
@@ -188,7 +204,7 @@ export default function IssueModal({ issue, users, currentUserId, onSave, onDele
               <button
                 onClick={handleAddComment}
                 disabled={!newComment.trim()}
-                className="self-end px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="self-end px-3 py-2 text-sm bg-brand-400 text-white rounded-md hover:bg-brand-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 投稿
               </button>

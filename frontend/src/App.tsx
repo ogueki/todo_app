@@ -5,6 +5,7 @@ import Sidebar from "./components/Sidebar.tsx";
 import IssueTable from "./components/IssueTable.tsx";
 import KanbanBoard from "./components/KanbanBoard.tsx";
 import IssueModal from "./components/IssueModal.tsx";
+import IssueDetailPage from "./components/IssueDetailPage.tsx";
 import ProjectModal from "./components/ProjectModal.tsx";
 import FilterBar, { defaultFilters } from "./components/FilterBar.tsx";
 import type { Filters } from "./components/FilterBar.tsx";
@@ -22,11 +23,14 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [filters, setFilters] = useState<Filters>(defaultFilters);
 
-  // モーダル
+  // モーダル（新規作成用）
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [showIssueModal, setShowIssueModal] = useState(false);
-  const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
+  const [newIssueParentId, setNewIssueParentId] = useState<number | null>(null);
+
+  // 課題詳細画面
+  const [viewingIssue, setViewingIssue] = useState<Issue | null>(null);
 
   // 認証チェック
   useEffect(() => {
@@ -74,12 +78,19 @@ export default function App() {
     if (filters.assignee.length) params.assignee = filters.assignee.join(",");
     if (filters.keyword) params.keyword = filters.keyword;
     if (filters.sort) params.sort = filters.sort;
-    api.fetchIssues(selectedProject.id, params).then(setIssues);
-  }, [selectedProject, filters]);
+    api.fetchIssues(selectedProject.id, params).then((loadedIssues) => {
+      setIssues(loadedIssues);
+      // 詳細画面を開いている場合、最新データで更新
+      if (viewingIssue) {
+        const updated = loadedIssues.find((i) => i.id === viewingIssue.id);
+        if (updated) setViewingIssue(updated);
+      }
+    });
+  }, [selectedProject, filters, viewingIssue]);
 
   useEffect(() => {
     loadIssues();
-  }, [loadIssues]);
+  }, [selectedProject, filters]);
 
   // --- プロジェクト操作 ---
   const handleSaveProject = async (data: { project_key: string; name: string; description: string }) => {
@@ -108,25 +119,11 @@ export default function App() {
   };
 
   // --- 課題操作 ---
-  const handleSaveIssue = async (data: Partial<Issue>) => {
+  const handleCreateIssue = async (data: Partial<Issue>) => {
     if (!selectedProject) return;
-    if (editingIssue) {
-      await api.updateIssue(selectedProject.id, editingIssue.id, data);
-    } else {
-      await api.createIssue(selectedProject.id, { ...data, created_by: currentUser!.id });
-    }
+    await api.createIssue(selectedProject.id, { ...data, created_by: currentUser!.id });
     loadIssues();
     setShowIssueModal(false);
-    setEditingIssue(null);
-  };
-
-  const handleDeleteIssue = async () => {
-    if (!selectedProject || !editingIssue) return;
-    if (!confirm(`「${editingIssue.subject}」を削除しますか？`)) return;
-    await api.deleteIssue(selectedProject.id, editingIssue.id);
-    loadIssues();
-    setShowIssueModal(false);
-    setEditingIssue(null);
   };
 
   const handleStatusChange = async (issueId: number, statusId: number) => {
@@ -136,8 +133,7 @@ export default function App() {
   };
 
   const openIssue = (issue: Issue) => {
-    setEditingIssue(issue);
-    setShowIssueModal(true);
+    setViewingIssue(issue);
   };
 
   if (!authChecked) {
@@ -149,7 +145,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-brand-50">
       <Sidebar
         projects={projects}
         selectedProject={selectedProject}
@@ -157,6 +153,7 @@ export default function App() {
         onSelectProject={(p) => {
           setSelectedProject(p);
           setFilters(defaultFilters);
+          setViewingIssue(null);
         }}
         onAddProject={() => {
           setEditingProject(null);
@@ -165,71 +162,89 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      <div className="flex-1 flex flex-col min-w-0">
-        {selectedProject ? (
-          <>
-            {/* ヘッダー */}
-            <div className="flex items-center justify-between px-6 py-4 border-b">
-              <div className="flex items-center gap-3">
-                <h2
-                  className="text-xl font-bold cursor-pointer hover:text-blue-600"
-                  onClick={() => {
-                    setEditingProject(selectedProject);
-                    setShowProjectModal(true);
-                  }}
-                >
-                  {selectedProject.name}
-                </h2>
-                <span className="text-sm text-gray-400 font-mono">{selectedProject.project_key}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {/* 表示切替 */}
-                <div className="flex border rounded-md overflow-hidden text-sm">
-                  <button
-                    onClick={() => setViewMode("list")}
-                    className={`px-3 py-1.5 ${viewMode === "list" ? "bg-gray-800 text-white" : "bg-white text-gray-600 hover:bg-gray-100"}`}
+      {/* 課題詳細画面 or 一覧画面 */}
+      {viewingIssue && selectedProject ? (
+        <IssueDetailPage
+          issue={viewingIssue}
+          issues={issues}
+          users={users}
+          currentUserId={currentUser.id}
+          projectId={selectedProject.id}
+          onBack={() => setViewingIssue(null)}
+          onIssueUpdated={loadIssues}
+          onOpenIssue={openIssue}
+          onAddChildIssue={(parentId) => {
+            setNewIssueParentId(parentId);
+            setShowIssueModal(true);
+          }}
+        />
+      ) : (
+        <div className="flex-1 flex flex-col min-w-0 bg-white">
+          {selectedProject ? (
+            <>
+              {/* ヘッダー */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
+                <div className="flex items-center gap-3">
+                  <h2
+                    className="text-xl font-bold cursor-pointer hover:text-brand-500 transition-colors"
+                    onClick={() => {
+                      setEditingProject(selectedProject);
+                      setShowProjectModal(true);
+                    }}
                   >
-                    リスト
-                  </button>
+                    {selectedProject.name}
+                  </h2>
+                  <span className="text-sm text-gray-400 font-mono">{selectedProject.project_key}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* 表示切替 */}
+                  <div className="flex border border-gray-300 rounded-md overflow-hidden text-sm">
+                    <button
+                      onClick={() => setViewMode("list")}
+                      className={`px-3 py-1.5 ${viewMode === "list" ? "bg-brand-400 text-white" : "bg-white text-gray-600 hover:bg-brand-50"}`}
+                    >
+                      リスト
+                    </button>
+                    <button
+                      onClick={() => setViewMode("board")}
+                      className={`px-3 py-1.5 ${viewMode === "board" ? "bg-brand-400 text-white" : "bg-white text-gray-600 hover:bg-brand-50"}`}
+                    >
+                      ボード
+                    </button>
+                  </div>
                   <button
-                    onClick={() => setViewMode("board")}
-                    className={`px-3 py-1.5 ${viewMode === "board" ? "bg-gray-800 text-white" : "bg-white text-gray-600 hover:bg-gray-100"}`}
+                    onClick={() => { setNewIssueParentId(null); setShowIssueModal(true); }}
+                    className="px-4 py-1.5 bg-brand-400 text-white text-sm rounded-md hover:bg-brand-500 transition-colors"
                   >
-                    ボード
+                    課題を追加
                   </button>
                 </div>
-                <button
-                  onClick={() => { setEditingIssue(null); setShowIssueModal(true); }}
-                  className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
-                >
-                  課題を追加
-                </button>
               </div>
-            </div>
 
-            {/* フィルタ */}
-            <FilterBar filters={filters} users={users} onChange={setFilters} />
+              {/* フィルタ */}
+              <FilterBar filters={filters} users={users} onChange={setFilters} />
 
-            {/* コンテンツ */}
-            <div className="flex-1 overflow-auto p-4">
-              {viewMode === "list" ? (
-                <IssueTable issues={issues} users={users} onClickIssue={openIssue} />
-              ) : (
-                <KanbanBoard
-                  issues={issues}
-                  users={users}
-                  onStatusChange={handleStatusChange}
-                  onClickIssue={openIssue}
-                />
-              )}
+              {/* コンテンツ */}
+              <div className="flex-1 overflow-auto p-4">
+                {viewMode === "list" ? (
+                  <IssueTable issues={issues} users={users} onClickIssue={openIssue} />
+                ) : (
+                  <KanbanBoard
+                    issues={issues}
+                    users={users}
+                    onStatusChange={handleStatusChange}
+                    onClickIssue={openIssue}
+                  />
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-gray-400">
+              <p>プロジェクトを選択してください</p>
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-400">
-            <p>プロジェクトを選択してください</p>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* モーダル */}
       {showProjectModal && (
@@ -242,12 +257,13 @@ export default function App() {
       )}
       {showIssueModal && (
         <IssueModal
-          issue={editingIssue}
+          issue={null}
+          issues={issues}
           users={users}
-          currentUserId={currentUser!.id}
-          onSave={handleSaveIssue}
-          onDelete={editingIssue ? handleDeleteIssue : undefined}
-          onClose={() => { setShowIssueModal(false); setEditingIssue(null); }}
+          currentUserId={currentUser.id}
+          defaultParentIssueId={newIssueParentId}
+          onSave={handleCreateIssue}
+          onClose={() => { setShowIssueModal(false); setNewIssueParentId(null); }}
         />
       )}
     </div>

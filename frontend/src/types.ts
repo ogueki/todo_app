@@ -28,6 +28,7 @@ export interface Issue {
   created_by: number;
   start_date: string | null;
   due_date: string | null;
+  parent_issue_id: number | null;
   resolution_id: number | null;
   created_at: string;
   updated_at: string;
