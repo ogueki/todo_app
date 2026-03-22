@@ -8,10 +8,13 @@ import IssueModal from "./components/IssueModal.tsx";
 import ProjectModal from "./components/ProjectModal.tsx";
 import FilterBar, { defaultFilters } from "./components/FilterBar.tsx";
 import type { Filters } from "./components/FilterBar.tsx";
+import LoginPage from "./components/LoginPage.tsx";
 
 type ViewMode = "list" | "board";
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -25,14 +28,41 @@ export default function App() {
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
 
+  // 認証チェック
+  useEffect(() => {
+    if (api.getToken()) {
+      api.fetchMe()
+        .then(setCurrentUser)
+        .catch(() => api.clearToken())
+        .finally(() => setAuthChecked(true));
+    } else {
+      setAuthChecked(true);
+    }
+  }, []);
+
+  const handleLogin = async (email: string, password: string) => {
+    const { token, user } = await api.login(email, password);
+    api.setToken(token);
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    api.clearToken();
+    setCurrentUser(null);
+    setProjects([]);
+    setSelectedProject(null);
+    setIssues([]);
+  };
+
   // 初期データ読み込み
   useEffect(() => {
+    if (!currentUser) return;
     api.fetchUsers().then(setUsers);
     api.fetchProjects().then((ps) => {
       setProjects(ps);
       if (ps.length > 0) setSelectedProject(ps[0]);
     });
-  }, []);
+  }, [currentUser]);
 
   // 課題読み込み
   const loadIssues = useCallback(() => {
@@ -83,7 +113,7 @@ export default function App() {
     if (editingIssue) {
       await api.updateIssue(selectedProject.id, editingIssue.id, data);
     } else {
-      await api.createIssue(selectedProject.id, { ...data, created_by: 1 });
+      await api.createIssue(selectedProject.id, { ...data, created_by: currentUser!.id });
     }
     loadIssues();
     setShowIssueModal(false);
@@ -110,11 +140,20 @@ export default function App() {
     setShowIssueModal(true);
   };
 
+  if (!authChecked) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-400">読み込み中...</div>;
+  }
+
+  if (!currentUser) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
   return (
     <div className="flex h-screen bg-white">
       <Sidebar
         projects={projects}
         selectedProject={selectedProject}
+        currentUser={currentUser}
         onSelectProject={(p) => {
           setSelectedProject(p);
           setFilters(defaultFilters);
@@ -123,6 +162,7 @@ export default function App() {
           setEditingProject(null);
           setShowProjectModal(true);
         }}
+        onLogout={handleLogout}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -204,6 +244,7 @@ export default function App() {
         <IssueModal
           issue={editingIssue}
           users={users}
+          currentUserId={currentUser!.id}
           onSave={handleSaveIssue}
           onDelete={editingIssue ? handleDeleteIssue : undefined}
           onClose={() => { setShowIssueModal(false); setEditingIssue(null); }}

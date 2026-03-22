@@ -17,6 +17,7 @@ export function initDatabase(): void {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
+      password TEXT NOT NULL DEFAULT '',
       created_at TEXT DEFAULT (datetime('now', 'localtime'))
     );
 
@@ -66,14 +67,20 @@ export function initDatabase(): void {
   } catch {
     // カラムが既に存在する場合は無視
   }
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN password TEXT NOT NULL DEFAULT ''");
+    db.exec("UPDATE users SET password = 'password' WHERE password = ''");
+  } catch {
+    // カラムが既に存在する場合は無視
+  }
 
   // シードデータ（テーブルが空の場合のみ）
   const userCount = db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
   if (userCount.count === 0) {
-    const insertUser = db.prepare("INSERT INTO users (name, email) VALUES (?, ?)");
-    insertUser.run("田中太郎", "tanaka@example.com");
-    insertUser.run("佐藤花子", "sato@example.com");
-    insertUser.run("鈴木一郎", "suzuki@example.com");
+    const insertUser = db.prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
+    insertUser.run("田中太郎", "tanaka@example.com", "password");
+    insertUser.run("佐藤花子", "sato@example.com", "password");
+    insertUser.run("鈴木一郎", "suzuki@example.com", "password");
 
     const insertProject = db.prepare(
       "INSERT INTO projects (project_key, name, description) VALUES (?, ?, ?)"

@@ -1,14 +1,16 @@
 import { useState } from "react";
-import type { Project } from "../types.ts";
+import type { Project, User } from "../types.ts";
 
 interface Props {
   projects: Project[];
   selectedProject: Project | null;
+  currentUser: User;
   onSelectProject: (project: Project) => void;
   onAddProject: () => void;
+  onLogout: () => void;
 }
 
-export default function Sidebar({ projects, selectedProject, onSelectProject, onAddProject }: Props) {
+export default function Sidebar({ projects, selectedProject, currentUser, onSelectProject, onAddProject, onLogout }: Props) {
   const [collapsed, setCollapsed] = useState(false);
 
   if (collapsed) {
@@ -52,6 +54,16 @@ export default function Sidebar({ projects, selectedProject, onSelectProject, on
           <p className="text-gray-500 text-sm px-4 py-4">プロジェクトがありません</p>
         )}
       </nav>
+
+      <div className="border-t border-gray-700 px-4 py-3">
+        <p className="text-xs text-gray-400 truncate">{currentUser.name}</p>
+        <button
+          onClick={onLogout}
+          className="text-xs text-gray-500 hover:text-gray-300 mt-1"
+        >
+          ログアウト
+        </button>
+      </div>
     </div>
   );
 }

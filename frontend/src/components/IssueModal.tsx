@@ -6,12 +6,13 @@ import * as api from "../api.ts";
 interface Props {
   issue: Issue | null; // null = 新規作成
   users: User[];
+  currentUserId: number;
   onSave: (data: Partial<Issue>) => void;
   onDelete?: () => void;
   onClose: () => void;
 }
 
-export default function IssueModal({ issue, users, onSave, onDelete, onClose }: Props) {
+export default function IssueModal({ issue, users, currentUserId, onSave, onDelete, onClose }: Props) {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [statusId, setStatusId] = useState(1);
@@ -68,7 +69,7 @@ export default function IssueModal({ issue, users, onSave, onDelete, onClose }: 
 
   const handleAddComment = async () => {
     if (!issue || !newComment.trim()) return;
-    const comment = await api.createComment(issue.id, { content: newComment.trim(), user_id: 1 });
+    const comment = await api.createComment(issue.id, { content: newComment.trim(), user_id: currentUserId });
     setComments((prev) => [comment, ...prev]);
     setNewComment("");
   };

@@ -2,11 +2,28 @@ import type { User, Project, Issue, Comment } from "./types.ts";
 
 const BASE = "/api";
 
+// トークン管理
+export function getToken(): string | null {
+  return localStorage.getItem("token");
+}
+export function setToken(token: string): void {
+  localStorage.setItem("token", token);
+}
+export function clearToken(): void {
+  localStorage.removeItem("token");
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
+  const token = getToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}${path}`, { headers, ...options });
+  if (res.status === 401 && !path.startsWith("/auth")) {
+    clearToken();
+    window.location.reload();
+    throw new Error("認証が切れました");
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "エラーが発生しました" }));
     throw new Error(err.error);
@@ -14,6 +31,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (res.status === 204) return undefined as T;
   return res.json();
 }
+
+// 認証
+export const login = (email: string, password: string) =>
+  request<{ token: string; user: User }>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+export const fetchMe = () => request<User>("/auth/me");
 
 // ユーザー
 export const fetchUsers = () => request<User[]>("/users");

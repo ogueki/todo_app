@@ -1,16 +1,71 @@
 import express from "express";
+import type { Request, Response, NextFunction } from "express";
 import cors from "cors";
+import jwt from "jsonwebtoken";
 import db, { initDatabase } from "./database.js";
 
 const app = express();
 const PORT = 3001;
+const JWT_SECRET = "taskboard-dev-secret"; // 開発用。本番では環境変数から取得する
 
 app.use(cors());
 app.use(express.json());
 
+// --- 認証 ---
+interface AuthRequest extends Request {
+  user?: { id: number; name: string; email: string };
+}
+
+app.post("/api/auth/login", (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    res.status(400).json({ error: "メールアドレスとパスワードは必須です" });
+    return;
+  }
+  const user = db.prepare("SELECT id, name, email, password FROM users WHERE email = ?").get(email) as any;
+  if (!user || user.password !== password) {
+    res.status(401).json({ error: "メールアドレスまたはパスワードが正しくありません" });
+    return;
+  }
+  const token = jwt.sign({ id: user.id, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
+  res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+});
+
+app.get("/api/auth/me", (req: AuthRequest, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    res.status(401).json({ error: "認証が必要です" });
+    return;
+  }
+  try {
+    const payload = jwt.verify(authHeader.slice(7), JWT_SECRET) as { id: number; name: string; email: string };
+    res.json({ id: payload.id, name: payload.name, email: payload.email });
+  } catch {
+    res.status(401).json({ error: "トークンが無効です" });
+  }
+});
+
+// 認証ミドルウェア（/api/auth 以外のルートを保護）
+function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+  if (req.path.startsWith("/api/auth")) return next();
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    res.status(401).json({ error: "認証が必要です" });
+    return;
+  }
+  try {
+    const payload = jwt.verify(authHeader.slice(7), JWT_SECRET) as { id: number; name: string; email: string };
+    req.user = payload;
+    next();
+  } catch {
+    res.status(401).json({ error: "トークンが無効です" });
+  }
+}
+app.use(authMiddleware);
+
 // --- ユーザー ---
 app.get("/api/users", (_req, res) => {
-  const users = db.prepare("SELECT * FROM users ORDER BY id").all();
+  const users = db.prepare("SELECT id, name, email, created_at FROM users ORDER BY id").all();
   res.json(users);
 });
 
