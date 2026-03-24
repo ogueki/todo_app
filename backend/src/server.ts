@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
-import db, { initDatabase } from "./database.js";
+import db, { initDatabase } from "./database";
 
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || "taskboard-dev-secret";
