@@ -1,3 +1,5 @@
-import app from "../backend/src/server";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default app;
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  res.json({ message: "API is alive", path: req.url });
+}
