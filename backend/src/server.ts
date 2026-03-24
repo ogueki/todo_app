@@ -19,6 +19,35 @@ const supabase = createClient(
 app.use(cors());
 app.use(express.json());
 
+// --- ヘルスチェック（認証不要） ---
+app.get("/api/health", async (_req: Request, res: Response) => {
+  try {
+    const result = await db.queryOne<{ now: string }>("SELECT NOW() as now");
+    res.json({
+      status: "ok",
+      db: result ? "connected" : "no result",
+      timestamp: result?.now,
+      env: {
+        hasDbUrl: !!process.env.DATABASE_URL,
+        hasSupabaseUrl: !!process.env.SUPABASE_URL,
+        hasJwtSecret: !!process.env.JWT_SECRET,
+        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      },
+    });
+  } catch (e: any) {
+    res.status(500).json({
+      status: "error",
+      error: e.message,
+      env: {
+        hasDbUrl: !!process.env.DATABASE_URL,
+        hasSupabaseUrl: !!process.env.SUPABASE_URL,
+        hasJwtSecret: !!process.env.JWT_SECRET,
+        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      },
+    });
+  }
+});
+
 // --- 認証 ---
 interface AuthRequest extends Request {
   user?: { id: number; name: string; email: string };
@@ -71,7 +100,7 @@ app.get("/api/auth/me", async (req: Request, res: Response) => {
 
 // 認証ミドルウェア
 function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
-  if (req.path.startsWith("/api/auth")) return next();
+  if (req.path.startsWith("/api/auth") || req.path === "/api/health") return next();
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
     res.status(401).json({ error: "認証が必要です" });
