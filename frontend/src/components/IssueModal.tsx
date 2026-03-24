@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import type { Issue, User, Comment } from "../types.ts";
 import { STATUSES, PRIORITIES, TYPES, RESOLUTIONS } from "../types.ts";
 import * as api from "../api.ts";
+import Avatar from "./Avatar.tsx";
 
 interface Props {
   issue: Issue | null; // null = 新規作成
@@ -218,7 +219,10 @@ export default function IssueModal({ issue, issues, users, currentUserId, defaul
                 {comments.map((c) => (
                   <div key={c.id} className="bg-gray-50 rounded-md px-3 py-2">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-gray-700">{c.user_name}</span>
+                      <span className="flex items-center gap-1 text-xs font-medium text-gray-700">
+                        <Avatar name={c.user_name} avatarFilename={c.user_avatar_url} size="xs" />
+                        {c.user_name}
+                      </span>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-400">{c.created_at}</span>
                         <button

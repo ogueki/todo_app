@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import type { Issue, User, Comment } from "../types.ts";
 import { STATUSES, PRIORITIES, TYPES, RESOLUTIONS } from "../types.ts";
 import * as api from "../api.ts";
+import Avatar from "./Avatar.tsx";
 
 interface Props {
   issue: Issue;
@@ -239,7 +240,14 @@ export default function IssueDetailPage({
                           <td className="px-3 py-2.5 whitespace-nowrap">
                             <span className="text-xs font-medium" style={{ color: cp.color }}>● {cp.name}</span>
                           </td>
-                          <td className="px-3 py-2.5 text-xs text-gray-600 whitespace-nowrap">{ca?.name ?? "—"}</td>
+                          <td className="px-3 py-2.5 text-xs text-gray-600 whitespace-nowrap">
+                            {ca ? (
+                              <span className="flex items-center gap-1">
+                                <Avatar name={ca.name} avatarFilename={ca.avatar_url} size="xs" />
+                                {ca.name}
+                              </span>
+                            ) : "—"}
+                          </td>
                           <td className="px-3 py-2.5 text-xs text-gray-500 whitespace-nowrap">{child.due_date ?? "—"}</td>
                         </tr>
                       );
@@ -277,7 +285,10 @@ export default function IssueDetailPage({
               {comments.map((c) => (
                 <div key={c.id} className="bg-gray-50 rounded-md px-4 py-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-700">{c.user_name}</span>
+                    <span className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                      <Avatar name={c.user_name} avatarFilename={c.user_avatar_url} size="sm" />
+                      {c.user_name}
+                    </span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400">{c.created_at}</span>
                       <button onClick={() => handleDeleteComment(c.id)} className="text-xs text-gray-400 hover:text-red-500">
@@ -361,7 +372,14 @@ export default function IssueDetailPage({
                 {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             ) : (
-              <span className="text-sm text-gray-700">{getUser(issue.assignee_id)?.name ?? "未割り当て"}</span>
+              <span className="text-sm text-gray-700 flex items-center gap-1.5">
+                {getUser(issue.assignee_id) ? (
+                  <>
+                    <Avatar name={getUser(issue.assignee_id)!.name} avatarFilename={getUser(issue.assignee_id)!.avatar_url} size="sm" />
+                    {getUser(issue.assignee_id)!.name}
+                  </>
+                ) : "未割り当て"}
+              </span>
             )}
           </div>
 
@@ -411,7 +429,14 @@ export default function IssueDetailPage({
           {/* メタ情報 */}
           <div>
             <label className="block text-xs text-gray-500 mb-1">登録者</label>
-            <span className="text-sm text-gray-700">{createdByUser?.name ?? "—"}</span>
+            <span className="text-sm text-gray-700 flex items-center gap-1.5">
+              {createdByUser ? (
+                <>
+                  <Avatar name={createdByUser.name} avatarFilename={createdByUser.avatar_url} size="sm" />
+                  {createdByUser.name}
+                </>
+              ) : "—"}
+            </span>
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">登録日</label>

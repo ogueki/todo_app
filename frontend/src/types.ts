@@ -2,6 +2,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  avatar_url?: string | null;
 }
 
 export interface Project {
@@ -39,6 +40,7 @@ export interface Comment {
   issue_id: number;
   user_id: number;
   user_name: string;
+  user_avatar_url?: string | null;
   content: string;
   created_at: string;
 }

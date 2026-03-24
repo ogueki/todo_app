@@ -76,3 +76,28 @@ export const createComment = (issueId: number, data: { content: string; user_id:
   request<Comment>(`/issues/${issueId}/comments`, { method: "POST", body: JSON.stringify(data) });
 export const deleteComment = (commentId: number) =>
   request<void>(`/comments/${commentId}`, { method: "DELETE" });
+
+// アバター
+export async function uploadAvatar(file: File): Promise<User> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("avatar", file);
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${BASE}/avatars/upload`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "アップロードに失敗しました" }));
+    throw new Error(err.error);
+  }
+  return res.json();
+}
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://uuttavvovibccllaaqaf.supabase.co";
+
+export function avatarUrl(filename: string | null | undefined): string | null {
+  return filename ? `${SUPABASE_URL}/storage/v1/object/public/avatars/${filename}` : null;
+}

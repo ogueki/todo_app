@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { Project, User } from "../types.ts";
+import * as api from "../api.ts";
+import Avatar from "./Avatar.tsx";
 
 interface Props {
   projects: Project[];
@@ -8,10 +10,24 @@ interface Props {
   onSelectProject: (project: Project) => void;
   onAddProject: () => void;
   onLogout: () => void;
+  onUserUpdated: (user: User) => void;
 }
 
-export default function Sidebar({ projects, selectedProject, currentUser, onSelectProject, onAddProject, onLogout }: Props) {
+export default function Sidebar({ projects, selectedProject, currentUser, onSelectProject, onAddProject, onLogout, onUserUpdated }: Props) {
   const [collapsed, setCollapsed] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const updated = await api.uploadAvatar(file);
+      onUserUpdated(updated);
+    } catch (err: any) {
+      alert(err.message);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   if (collapsed) {
     return (
@@ -55,14 +71,20 @@ export default function Sidebar({ projects, selectedProject, currentUser, onSele
         )}
       </nav>
 
-      <div className="border-t border-brand-800 px-4 py-3">
-        <p className="text-xs text-brand-300 truncate">{currentUser.name}</p>
-        <button
-          onClick={onLogout}
-          className="text-xs text-brand-500 hover:text-brand-300 mt-1"
-        >
-          ログアウト
+      <div className="border-t border-brand-800 px-4 py-3 flex items-center gap-2">
+        <button onClick={() => fileInputRef.current?.click()} className="shrink-0" title="アイコンを変更">
+          <Avatar name={currentUser.name} avatarFilename={currentUser.avatar_url} size="md" className="cursor-pointer hover:opacity-80 transition-opacity" />
         </button>
+        <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/gif" className="hidden" onChange={handleAvatarUpload} />
+        <div className="min-w-0">
+          <p className="text-xs text-brand-300 truncate">{currentUser.name}</p>
+          <button
+            onClick={onLogout}
+            className="text-xs text-brand-500 hover:text-brand-300"
+          >
+            ログアウト
+          </button>
+        </div>
       </div>
     </div>
   );

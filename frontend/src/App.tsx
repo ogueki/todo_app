@@ -160,6 +160,10 @@ export default function App() {
           setShowProjectModal(true);
         }}
         onLogout={handleLogout}
+        onUserUpdated={(user) => {
+          setCurrentUser(user);
+          api.fetchUsers().then(setUsers);
+        }}
       />
 
       {/* 課題詳細画面 or 一覧画面 */}

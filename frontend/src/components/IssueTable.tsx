@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { Issue, User } from "../types.ts";
 import { STATUSES, PRIORITIES, TYPES } from "../types.ts";
+import Avatar from "./Avatar.tsx";
 
 interface Props {
   issues: Issue[];
@@ -87,7 +88,14 @@ export default function IssueTable({ issues, users, onClickIssue }: Props) {
                     ● {priority.name}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-600">{assignee?.name ?? "—"}</td>
+                <td className="px-4 py-3 text-gray-600">
+                  {assignee ? (
+                    <span className="flex items-center gap-1.5">
+                      <Avatar name={assignee.name} avatarFilename={assignee.avatar_url} size="xs" />
+                      {assignee.name}
+                    </span>
+                  ) : "—"}
+                </td>
                 <td className="px-4 py-3 text-gray-500 text-xs">{issue.due_date ?? "—"}</td>
               </tr>
             );

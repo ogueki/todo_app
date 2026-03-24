@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import type { Issue, User } from "../types.ts";
 import { STATUSES, PRIORITIES } from "../types.ts";
+import Avatar from "./Avatar.tsx";
 
 interface Props {
   issues: Issue[];
@@ -93,7 +94,8 @@ export default function KanbanBoard({ issues, users, onStatusChange, onClickIssu
                     <p className="text-sm font-medium text-gray-800 mb-2 line-clamp-2">{issue.subject}</p>
                     <div className="flex items-center justify-between">
                       {assignee ? (
-                        <span className="text-xs text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">
+                        <span className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">
+                          <Avatar name={assignee.name} avatarFilename={assignee.avatar_url} size="xs" />
                           {assignee.name}
                         </span>
                       ) : (
