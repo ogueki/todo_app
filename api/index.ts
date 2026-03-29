@@ -83,10 +83,10 @@ app.post("/api/avatars/upload", async (req: any, res: any) => {
     const ext = path.extname(originalName || ".png").toLowerCase();
     const storageName = `${req.user.id}${ext}`;
     const { error } = await supabase.storage.from("avatars").upload(storageName, buffer, { contentType: mimetype, upsert: true });
-    if (error) { console.error("Storage error:", error); res.status(500).json({ error: "アップロードに失敗しました", detail: error.message }); return; }
+    if (error) { console.error("Storage error:", error); res.status(500).json({ error: "アップロードに失敗しました" }); return; }
     const user = await db.queryOne("UPDATE users SET avatar_url = $1 WHERE id = $2 RETURNING id, name, email, avatar_url", [storageName, req.user.id]);
     res.json(user);
-  } catch (e: any) { console.error("Avatar error:", e); res.status(500).json({ error: "サーバーエラー", detail: e.message }); }
+  } catch (e: any) { console.error(e); res.status(500).json({ error: "サーバーエラー" }); }
 });
 
 // --- プロジェクト ---
