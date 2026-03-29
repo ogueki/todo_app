@@ -5,20 +5,29 @@ Backlog風タスク管理WEBアプリケーション。
 ## 技術スタック
 - **フロントエンド**: React + TypeScript + Vite + Tailwind CSS (`frontend/`)
 - **バックエンド**: Node.js + Express + TypeScript (`backend/`)
-- **DB**: SQLite (better-sqlite3)
+- **DB**: PostgreSQL (Supabase)
+- **ストレージ**: Supabase Storage（アバター画像）
+- **デプロイ**: Vercel（サーバーレス）
 
 ## ディレクトリ構成
 ```
 todoapp/
 ├── CLAUDE.md
 ├── docs/
-│   └── spec.md          # 仕様書
+│   └── spec.md                # 仕様書
 ├── backend/
 │   ├── src/
+│   │   ├── server.ts          # Express APIサーバー
+│   │   └── database.ts        # PostgreSQL接続（pg Pool）
 │   └── package.json
-└── frontend/
-    ├── src/
-    └── package.json
+├── frontend/
+│   ├── src/
+│   └── package.json
+├── api/
+│   ├── index.ts               # Vercelサーバーレス関数
+│   └── _database.ts           # DB接続ヘルパー
+├── supabase-migration.sql     # スキーマ＆シードデータ
+└── vercel.json                # Vercelデプロイ設定
 ```
 
 ## 開発ルール

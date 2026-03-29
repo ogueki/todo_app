@@ -8,7 +8,10 @@ Backlog風のプロジェクト・タスク管理WEBアプリケーション。
 |---------|------|
 | フロントエンド | React + TypeScript + Vite + Tailwind CSS |
 | バックエンド | Node.js + Express + TypeScript |
-| データベース | SQLite (better-sqlite3) |
+| データベース | PostgreSQL (Supabase) |
+| ストレージ | Supabase Storage（アバター画像） |
+| 認証 | JWT（jsonwebtoken） |
+| デプロイ | Vercel（サーバーレス） |
 
 ## MVP スコープ
 
@@ -52,6 +55,12 @@ Backlog風のプロジェクト・タスク管理WEBアプリケーション。
 - 担当者: 任意（未割り当て可）
 - 登録者: 課題作成時に自動設定（ログインユーザー）
 
+### 6.5. アバター
+- ユーザーはプロフィール画像をアップロード可能
+- 対応形式: PNG, JPG, GIF（最大2MB）
+- Supabase Storageの `avatars` バケットに保存
+- 未設定時は名前のイニシャルをカラーサークルで表示
+
 ### 7. 期限日
 - 開始日（任意）
 - 期限日（任意）
@@ -60,12 +69,13 @@ Backlog風のプロジェクト・タスク管理WEBアプリケーション。
 ### 8. 課題一覧・検索・フィルタ
 - 一覧表示（テーブル形式）
 - フィルタ条件:
-  - ステータス（複数選択可）
-  - 優先度（複数選択可）
-  - 種別（複数選択可）
-  - 担当者（複数選択可）
+  - ステータス（複数選択可、ボタントグル）
+  - 優先度（複数選択可、ボタントグル）
+  - 種別（単一選択、ドロップダウン）
+  - 担当者（単一選択、ドロップダウン）
   - キーワード（件名の部分一致）
-- ソート: 作成日 / 更新日 / 優先度 / 期限日
+- ソート: 作成日（デフォルト）/ 更新日 / 優先度 / 期限日
+- フィルタリセットボタン（フィルタ適用時に表示）
 
 ### 9. カンバンボード
 - ステータス別の列表示（未対応 | 処理中 | 処理済み | 完了）
@@ -105,30 +115,31 @@ Backlog風のプロジェクト・タスク管理WEBアプリケーション。
 ### users
 | カラム | 型 | 制約 |
 |--------|-----|------|
-| id | INTEGER | PK, AUTO INCREMENT |
+| id | SERIAL | PK |
 | name | TEXT | NOT NULL |
 | email | TEXT | NOT NULL, UNIQUE |
-| password | TEXT | NOT NULL（bcryptハッシュ） |
-| created_at | TEXT | DEFAULT CURRENT_TIMESTAMP |
+| password | TEXT | NOT NULL, DEFAULT '' |
+| avatar_url | TEXT | NULL可（Supabase Storageのファイル名） |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() |
 
 ### projects
 | カラム | 型 | 制約 |
 |--------|-----|------|
-| id | INTEGER | PK, AUTO INCREMENT |
+| id | SERIAL | PK |
 | project_key | TEXT | NOT NULL, UNIQUE, 英大文字2-10文字 |
 | name | TEXT | NOT NULL |
-| description | TEXT | |
-| created_at | TEXT | DEFAULT CURRENT_TIMESTAMP |
-| updated_at | TEXT | DEFAULT CURRENT_TIMESTAMP |
+| description | TEXT | DEFAULT '' |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() |
 
 ### issues
 | カラム | 型 | 制約 |
 |--------|-----|------|
-| id | INTEGER | PK, AUTO INCREMENT |
-| project_id | INTEGER | FK → projects.id, NOT NULL |
+| id | SERIAL | PK |
+| project_id | INTEGER | FK → projects.id ON DELETE CASCADE, NOT NULL |
 | issue_number | INTEGER | NOT NULL（プロジェクト内連番） |
 | subject | TEXT | NOT NULL |
-| description | TEXT | |
+| description | TEXT | DEFAULT '' |
 | status_id | INTEGER | NOT NULL, DEFAULT 1 |
 | priority_id | INTEGER | NOT NULL, DEFAULT 2 |
 | type_id | INTEGER | NOT NULL, DEFAULT 1 |
@@ -136,10 +147,10 @@ Backlog風のプロジェクト・タスク管理WEBアプリケーション。
 | created_by | INTEGER | FK → users.id, NOT NULL |
 | start_date | TEXT | NULL可 |
 | due_date | TEXT | NULL可 |
-| parent_issue_id | INTEGER | FK → issues.id, NULL可（親課題のID） |
+| parent_issue_id | INTEGER | FK → issues.id ON DELETE SET NULL, NULL可（親課題のID） |
 | resolution_id | INTEGER | NULL可（完了時のみ設定） |
-| created_at | TEXT | DEFAULT CURRENT_TIMESTAMP |
-| updated_at | TEXT | DEFAULT CURRENT_TIMESTAMP |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() |
 
 **ユニーク制約**: (project_id, issue_number)
 
@@ -148,11 +159,11 @@ Backlog風のプロジェクト・タスク管理WEBアプリケーション。
 ### comments
 | カラム | 型 | 制約 |
 |--------|-----|------|
-| id | INTEGER | PK, AUTO INCREMENT |
-| issue_id | INTEGER | FK → issues.id, NOT NULL |
+| id | SERIAL | PK |
+| issue_id | INTEGER | FK → issues.id ON DELETE CASCADE, NOT NULL |
 | user_id | INTEGER | FK → users.id, NOT NULL |
 | content | TEXT | NOT NULL |
-| created_at | TEXT | DEFAULT CURRENT_TIMESTAMP |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() |
 
 ---
 
@@ -189,13 +200,23 @@ Backlog風のプロジェクト・タスク管理WEBアプリケーション。
 |---------|------|------|
 | GET | /api/users | ユーザー一覧 |
 
+### アバター
+| メソッド | パス | 説明 |
+|---------|------|------|
+| POST | /api/avatars/upload | アバター画像アップロード（multipart, 2MB制限, PNG/JPG/GIF） |
+
+### ヘルスチェック
+| メソッド | パス | 説明 |
+|---------|------|------|
+| GET | /api/health | DB接続確認・環境変数チェック（認証不要） |
+
 ### 認証
 | メソッド | パス | 説明 |
 |---------|------|------|
 | POST | /api/auth/login | ログイン（JWT発行） |
 | GET | /api/auth/me | ログインユーザー情報取得 |
 
-**認証方式**: JWT（Bearer トークン）。`/api/auth` 以外の全APIは認証必須。トークンはフロントエンドの `localStorage` に保存し、401レスポンス時に自動ログアウト。
+**認証方式**: JWT（Bearer トークン、有効期限7日）。`/api/auth` と `/api/health` 以外の全APIは認証必須。トークンはフロントエンドの `localStorage` に保存し、401レスポンス時に自動ログアウト。パスワードは平文比較（MVP簡易実装）。
 
 ---
 
@@ -218,8 +239,8 @@ Backlog風のプロジェクト・タスク管理WEBアプリケーション。
 ### 画面一覧
 | 画面 | 表示方式 | 説明 |
 |------|----------|------|
-| ログイン | 専用ページ | メール+パスワード認証 |
-| 課題一覧 | メイン | テーブル形式（親子ツリー表示対応） |
+| ログイン | 専用ページ | メール+パスワード認証、テストアカウント表示 |
+| 課題一覧 | メイン | テーブル形式（親子ツリー表示対応）、リスト/ボード切替 |
 | カンバン | メイン | D&Dでステータス変更 |
 | 課題詳細 | 専用ページ | Backlog風の2カラムレイアウト（左: 本文・子課題・コメント、右: 属性パネル） |
 | 課題追加 | モーダル | 新規課題作成フォーム |
@@ -255,9 +276,10 @@ Backlogの機能を参考に、実装優先度を4段階で分類する。
 | 11 | 検索・フィルタ | ✅ 実装済み | ステータス/優先度/種別/担当者/キーワード |
 | 12 | ソート | ✅ 実装済み | 作成日/更新日/優先度/期限日 |
 | 13 | カンバンボード | ✅ 実装済み | D&Dでステータス変更 |
-| 14 | サイドバー | ✅ 実装済み | プロジェクト切り替え |
-| 15 | ダッシュボード | ✅ 実装済み | ステータス別集計 |
+| 14 | サイドバー | ✅ 実装済み | プロジェクト切り替え、アバターアップロード |
+| 15 | ダッシュボード | ❌ 未実装 | ステータス別集計（専用画面は未作成） |
 | 16 | ユーザー認証 | ✅ 実装済み | JWT認証、ログイン/ログアウト |
+| 16.5 | アバター | ✅ 実装済み | プロフィール画像アップロード（Supabase Storage） |
 | 17 | コメント機能 | ✅ 実装済み | 課題ごとにコメント投稿・一覧・削除 |
 | 18 | 完了理由 | ✅ 実装済み | 対応済み/対応しない/重複/再現しない/仕様通り |
 

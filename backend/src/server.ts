@@ -2,7 +2,6 @@ import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
-import multer from "multer";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
 import db, { initDatabase } from "./database";
@@ -17,7 +16,7 @@ const supabase = createClient(
 );
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "4mb" }));
 
 // --- ヘルスチェック（認証不要） ---
 app.get("/api/health", async (_req: Request, res: Response) => {
@@ -128,32 +127,31 @@ app.get("/api/users", async (_req: Request, res: Response) => {
 });
 
 // --- アバター ---
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 2 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    if (["image/png", "image/jpeg", "image/gif"].includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("png, jpg, gif のみアップロード可能です"));
-    }
-  },
-});
-
-app.post("/api/avatars/upload", upload.single("avatar"), async (req: AuthRequest, res: Response) => {
+app.post("/api/avatars/upload", async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.file) {
+    const { filename: originalName, mimetype, data } = req.body;
+    if (!data || !mimetype) {
       res.status(400).json({ error: "ファイルが指定されていません" });
       return;
     }
-    const ext = path.extname(req.file.originalname).toLowerCase();
-    const filename = `${req.user!.id}${ext}`;
+    if (!["image/png", "image/jpeg", "image/gif"].includes(mimetype)) {
+      res.status(400).json({ error: "png, jpg, gif のみアップロード可能です" });
+      return;
+    }
 
-    // Supabase Storage にアップロード (upsert)
+    const buffer = Buffer.from(data, "base64");
+    if (buffer.length > 2 * 1024 * 1024) {
+      res.status(400).json({ error: "ファイルサイズは2MB以下にしてください" });
+      return;
+    }
+
+    const ext = path.extname(originalName || ".png").toLowerCase();
+    const storageName = `${req.user!.id}${ext}`;
+
     const { error } = await supabase.storage
       .from("avatars")
-      .upload(filename, req.file.buffer, {
-        contentType: req.file.mimetype,
+      .upload(storageName, buffer, {
+        contentType: mimetype,
         upsert: true,
       });
 
@@ -165,7 +163,7 @@ app.post("/api/avatars/upload", upload.single("avatar"), async (req: AuthRequest
 
     const user = await db.queryOne<any>(
       "UPDATE users SET avatar_url = $1 WHERE id = $2 RETURNING id, name, email, avatar_url",
-      [filename, req.user!.id]
+      [storageName, req.user!.id]
     );
     res.json(user);
   } catch (e) {

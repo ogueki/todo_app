@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
-import multer from "multer";
 import path from "path";
 import pg from "pg";
 import { createClient } from "@supabase/supabase-js";
@@ -23,7 +22,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "taskboard-dev-secret";
 const supabase = createClient(process.env.SUPABASE_URL || "", process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "4mb" }));
 
 // --- ヘルスチェック ---
 app.get("/api/health", async (_req: any, res: any) => {
@@ -74,23 +73,20 @@ app.get("/api/users", async (_req: any, res: any) => {
 });
 
 // --- アバター ---
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 },
-  fileFilter: (_req: any, file: any, cb: any) => {
-    if (["image/png", "image/jpeg", "image/gif"].includes(file.mimetype)) cb(null, true);
-    else cb(new Error("png, jpg, gif のみアップロード可能です"));
-  },
-});
-
-app.post("/api/avatars/upload", upload.single("avatar"), async (req: any, res: any) => {
+app.post("/api/avatars/upload", async (req: any, res: any) => {
   try {
-    if (!req.file) { res.status(400).json({ error: "ファイルが指定されていません" }); return; }
-    const ext = path.extname(req.file.originalname).toLowerCase();
-    const filename = `${req.user.id}${ext}`;
-    const { error } = await supabase.storage.from("avatars").upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: true });
+    const { filename: originalName, mimetype, data } = req.body;
+    if (!data || !mimetype) { res.status(400).json({ error: "ファイルが指定されていません" }); return; }
+    if (!["image/png", "image/jpeg", "image/gif"].includes(mimetype)) { res.status(400).json({ error: "png, jpg, gif のみアップロード可能です" }); return; }
+    const buffer = Buffer.from(data, "base64");
+    if (buffer.length > 2 * 1024 * 1024) { res.status(400).json({ error: "ファイルサイズは2MB以下にしてください" }); return; }
+    const ext = path.extname(originalName || ".png").toLowerCase();
+    const storageName = `${req.user.id}${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(storageName, buffer, { contentType: mimetype, upsert: true });
     if (error) { res.status(500).json({ error: "アップロードに失敗しました" }); return; }
-    const user = await db.queryOne("UPDATE users SET avatar_url = $1 WHERE id = $2 RETURNING id, name, email, avatar_url", [filename, req.user.id]);
+    const user = await db.queryOne("UPDATE users SET avatar_url = $1 WHERE id = $2 RETURNING id, name, email, avatar_url", [storageName, req.user.id]);
     res.json(user);
-  } catch (e: any) { res.status(500).json({ error: "サーバーエラー" }); }
+  } catch (e: any) { console.error(e); res.status(500).json({ error: "サーバーエラー" }); }
 });
 
 // --- プロジェクト ---
