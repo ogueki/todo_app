@@ -203,7 +203,7 @@ Backlog風のプロジェクト・タスク管理WEBアプリケーション。
 ### アバター
 | メソッド | パス | 説明 |
 |---------|------|------|
-| POST | /api/avatars/upload | アバター画像アップロード（multipart, 2MB制限, PNG/JPG/GIF） |
+| POST | /api/avatars/upload | アバター画像アップロード（Base64 JSON, 2MB制限, PNG/JPG/GIF） |
 
 ### ヘルスチェック
 | メソッド | パス | 説明 |

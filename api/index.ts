@@ -100,6 +100,8 @@ app.post("/api/projects", async (req: any, res: any) => {
     const { project_key, name, description } = req.body;
     if (!project_key || !name) { res.status(400).json({ error: "project_key と name は必須です" }); return; }
     if (!/^[A-Z]{2,10}$/.test(project_key)) { res.status(400).json({ error: "project_key は英大文字2〜10文字で指定してください" }); return; }
+    if (name.length > 100) { res.status(400).json({ error: "プロジェクト名は100文字以内にしてください" }); return; }
+    if (description && description.length > 1000) { res.status(400).json({ error: "説明は1000文字以内にしてください" }); return; }
     res.status(201).json(await db.queryOne("INSERT INTO projects (project_key, name, description) VALUES ($1, $2, $3) RETURNING *", [project_key, name, description || ""]));
   } catch (e: any) {
     if (e.code === "23505") { res.status(409).json({ error: "そのプロジェクトキーは既に使用されています" }); return; }
@@ -119,6 +121,8 @@ app.put("/api/projects/:id", async (req: any, res: any) => {
   try {
     const { name, description } = req.body;
     if (!name) { res.status(400).json({ error: "name は必須です" }); return; }
+    if (name.length > 100) { res.status(400).json({ error: "プロジェクト名は100文字以内にしてください" }); return; }
+    if (description && description.length > 1000) { res.status(400).json({ error: "説明は1000文字以内にしてください" }); return; }
     const p = await db.queryOne("UPDATE projects SET name = $1, description = $2, updated_at = NOW() WHERE id = $3 RETURNING *", [name, description || "", req.params.id]);
     if (!p) { res.status(404).json({ error: "プロジェクトが見つかりません" }); return; }
     res.json(p);
@@ -147,7 +151,7 @@ app.get("/api/projects/:projectId/issues", async (req: any, res: any) => {
     if (assignee) { const ids = (assignee as string).split(",").map(Number); sql += ` AND i.assignee_id IN (${ids.map(() => `$${pi++}`).join(",")})`; params.push(...ids); }
     if (keyword) { sql += ` AND i.subject LIKE $${pi++}`; params.push(`%${keyword}%`); }
     const sortMap: Record<string, string> = { created: "i.created_at DESC", updated: "i.updated_at DESC", priority: "i.priority_id ASC", due: "i.due_date ASC NULLS LAST" };
-    sql += ` ORDER BY ${sortMap[sort as string] || "i.id DESC"}`;
+    sql += ` ORDER BY ${sortMap[sort as string] || "i.created_at DESC"}`;
     res.json(await db.query(sql, params));
   } catch (e: any) { console.error(e); res.status(500).json({ error: "サーバーエラー" }); }
 });
@@ -157,6 +161,8 @@ app.post("/api/projects/:projectId/issues", async (req: any, res: any) => {
     const { projectId } = req.params;
     const { subject, description, status_id, priority_id, type_id, assignee_id, created_by, start_date, due_date, resolution_id, parent_issue_id } = req.body;
     if (!subject) { res.status(400).json({ error: "subject は必須です" }); return; }
+    if (subject.length > 200) { res.status(400).json({ error: "件名は200文字以内にしてください" }); return; }
+    if (description && description.length > 10000) { res.status(400).json({ error: "詳細は10000文字以内にしてください" }); return; }
     if (start_date && due_date && start_date > due_date) { res.status(400).json({ error: "開始日は期限日以前にしてください" }); return; }
     const project = await db.queryOne("SELECT id FROM projects WHERE id = $1", [projectId]);
     if (!project) { res.status(404).json({ error: "プロジェクトが見つかりません" }); return; }
@@ -190,6 +196,8 @@ app.put("/api/projects/:projectId/issues/:issueId", async (req: any, res: any) =
   try {
     const { subject, description, status_id, priority_id, type_id, assignee_id, start_date, due_date, resolution_id, parent_issue_id } = req.body;
     if (!subject) { res.status(400).json({ error: "subject は必須です" }); return; }
+    if (subject.length > 200) { res.status(400).json({ error: "件名は200文字以内にしてください" }); return; }
+    if (description && description.length > 10000) { res.status(400).json({ error: "詳細は10000文字以内にしてください" }); return; }
     if (start_date && due_date && start_date > due_date) { res.status(400).json({ error: "開始日は期限日以前にしてください" }); return; }
     const effectiveParent = parent_issue_id || null;
     if (effectiveParent) {
@@ -224,11 +232,12 @@ app.delete("/api/projects/:projectId/issues/:issueId", async (req: any, res: any
 
 app.patch("/api/projects/:projectId/issues/:issueId/status", async (req: any, res: any) => {
   try {
-    const { status_id } = req.body;
+    const { status_id, resolution_id } = req.body;
     if (!status_id || status_id < 1 || status_id > 4) { res.status(400).json({ error: "status_id は 1〜4 で指定してください" }); return; }
-    const issue = await db.queryOne(`UPDATE issues SET status_id = $1, updated_at = NOW() WHERE id = $2 AND project_id = $3
+    const effectiveResolution = status_id === 4 ? (resolution_id || null) : null;
+    const issue = await db.queryOne(`UPDATE issues SET status_id = $1, resolution_id = $4, updated_at = NOW() WHERE id = $2 AND project_id = $3
       RETURNING *, (SELECT project_key FROM projects WHERE id = $3) as project_key, ((SELECT project_key FROM projects WHERE id = $3) || '-' || issue_number) as issue_key`,
-      [status_id, req.params.issueId, req.params.projectId]);
+      [status_id, req.params.issueId, req.params.projectId, effectiveResolution]);
     if (!issue) { res.status(404).json({ error: "課題が見つかりません" }); return; }
     res.json(issue);
   } catch (e: any) { res.status(500).json({ error: "サーバーエラー" }); }
@@ -255,8 +264,10 @@ app.post("/api/issues/:issueId/comments", async (req: any, res: any) => {
 
 app.delete("/api/comments/:commentId", async (req: any, res: any) => {
   try {
-    const r = await db.run("DELETE FROM comments WHERE id = $1", [req.params.commentId]);
-    if (r.rowCount === 0) { res.status(404).json({ error: "コメントが見つかりません" }); return; }
+    const comment = await db.queryOne("SELECT id, user_id FROM comments WHERE id = $1", [req.params.commentId]);
+    if (!comment) { res.status(404).json({ error: "コメントが見つかりません" }); return; }
+    if (comment.user_id !== req.user.id) { res.status(403).json({ error: "自分のコメントのみ削除できます" }); return; }
+    await db.run("DELETE FROM comments WHERE id = $1", [req.params.commentId]);
     res.status(204).end();
   } catch (e: any) { res.status(500).json({ error: "サーバーエラー" }); }
 });

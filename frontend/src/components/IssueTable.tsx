@@ -16,19 +16,24 @@ export default function IssueTable({ issues, users, onClickIssue }: Props) {
   const getType = (id: number) => TYPES.find((t) => t.id === id)!;
 
   // ツリー構造に並び替え: 親課題の直後に子課題を配置
+  // APIから返る順序（ソート済み）を親課題の順序として使い、子は親の直後に挿入
   const treeIssues = useMemo(() => {
-    const parents = issues.filter((i) => !i.parent_issue_id);
+    const issueIds = new Set(issues.map((i) => i.id));
     const childMap = new Map<number, Issue[]>();
+    const topLevel: Issue[] = [];
     for (const i of issues) {
-      if (i.parent_issue_id) {
+      if (i.parent_issue_id && issueIds.has(i.parent_issue_id)) {
         const children = childMap.get(i.parent_issue_id) || [];
         children.push(i);
         childMap.set(i.parent_issue_id, children);
+      } else {
+        topLevel.push(i);
       }
     }
     const result: { issue: Issue; isChild: boolean }[] = [];
-    for (const parent of parents) {
-      result.push({ issue: parent, isChild: false });
+    for (const parent of topLevel) {
+      const isChild = !!parent.parent_issue_id;
+      result.push({ issue: parent, isChild });
       const children = childMap.get(parent.id) || [];
       for (const child of children) {
         result.push({ issue: child, isChild: true });

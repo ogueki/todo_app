@@ -63,10 +63,10 @@ export const updateIssue = (projectId: number, issueId: number, data: Partial<Is
   request<Issue>(`/projects/${projectId}/issues/${issueId}`, { method: "PUT", body: JSON.stringify(data) });
 export const deleteIssue = (projectId: number, issueId: number) =>
   request<void>(`/projects/${projectId}/issues/${issueId}`, { method: "DELETE" });
-export const updateIssueStatus = (projectId: number, issueId: number, statusId: number) =>
+export const updateIssueStatus = (projectId: number, issueId: number, statusId: number, resolutionId?: number | null) =>
   request<Issue>(`/projects/${projectId}/issues/${issueId}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status_id: statusId }),
+    body: JSON.stringify({ status_id: statusId, resolution_id: resolutionId ?? null }),
   });
 
 // コメント

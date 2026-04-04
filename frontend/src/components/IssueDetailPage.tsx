@@ -12,13 +12,14 @@ interface Props {
   projectId: number;
   onBack: () => void;
   onIssueUpdated: () => void;
+  onIssueDeleted: () => void;
   onOpenIssue: (issue: Issue) => void;
   onAddChildIssue: (parentIssueId: number) => void;
 }
 
 export default function IssueDetailPage({
   issue, issues, users, currentUserId, projectId,
-  onBack, onIssueUpdated, onOpenIssue, onAddChildIssue,
+  onBack, onIssueUpdated, onIssueDeleted, onOpenIssue, onAddChildIssue,
 }: Props) {
   // 編集状態
   const [editing, setEditing] = useState(false);
@@ -89,6 +90,16 @@ export default function IssueDetailPage({
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm(`「${issue.subject}」を削除しますか？この操作は元に戻せません。`)) return;
+    try {
+      await api.deleteIssue(projectId, issue.id);
+      onIssueDeleted();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
     const comment = await api.createComment(issue.id, { content: newComment.trim(), user_id: currentUserId });
@@ -134,9 +145,14 @@ export default function IssueDetailPage({
         <span className="font-mono text-sm text-gray-500">{issue.issue_key}</span>
         <div className="ml-auto flex gap-2">
           {!editing ? (
-            <button onClick={() => setEditing(true)} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md">
-              編集
-            </button>
+            <>
+              <button onClick={() => setEditing(true)} className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md">
+                編集
+              </button>
+              <button onClick={handleDelete} className="px-3 py-1.5 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md">
+                削除
+              </button>
+            </>
           ) : (
             <>
               <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700">
@@ -291,9 +307,11 @@ export default function IssueDetailPage({
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400">{c.created_at}</span>
-                      <button onClick={() => handleDeleteComment(c.id)} className="text-xs text-gray-400 hover:text-red-500">
-                        削除
-                      </button>
+                      {c.user_id === currentUserId && (
+                        <button onClick={() => handleDeleteComment(c.id)} className="text-xs text-gray-400 hover:text-red-500">
+                          削除
+                        </button>
+                      )}
                     </div>
                   </div>
                   <p className="text-sm text-gray-600 whitespace-pre-wrap">{c.content}</p>

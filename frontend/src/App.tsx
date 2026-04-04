@@ -126,9 +126,9 @@ export default function App() {
     setShowIssueModal(false);
   };
 
-  const handleStatusChange = async (issueId: number, statusId: number) => {
+  const handleStatusChange = async (issueId: number, statusId: number, resolutionId?: number | null) => {
     if (!selectedProject) return;
-    await api.updateIssueStatus(selectedProject.id, issueId, statusId);
+    await api.updateIssueStatus(selectedProject.id, issueId, statusId, resolutionId);
     loadIssues();
   };
 
@@ -176,6 +176,10 @@ export default function App() {
           projectId={selectedProject.id}
           onBack={() => setViewingIssue(null)}
           onIssueUpdated={loadIssues}
+          onIssueDeleted={() => {
+            setViewingIssue(null);
+            loadIssues();
+          }}
           onOpenIssue={openIssue}
           onAddChildIssue={(parentId) => {
             setNewIssueParentId(parentId);

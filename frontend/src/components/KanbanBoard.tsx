@@ -1,12 +1,12 @@
 import { useState, useRef } from "react";
 import type { Issue, User } from "../types.ts";
-import { STATUSES, PRIORITIES } from "../types.ts";
+import { STATUSES, PRIORITIES, RESOLUTIONS } from "../types.ts";
 import Avatar from "./Avatar.tsx";
 
 interface Props {
   issues: Issue[];
   users: User[];
-  onStatusChange: (issueId: number, statusId: number) => void;
+  onStatusChange: (issueId: number, statusId: number, resolutionId?: number | null) => void;
   onClickIssue: (issue: Issue) => void;
 }
 
@@ -14,6 +14,10 @@ export default function KanbanBoard({ issues, users, onStatusChange, onClickIssu
   const [draggedIssue, setDraggedIssue] = useState<Issue | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<number | null>(null);
   const dragCounter = useRef<Record<number, number>>({});
+
+  // 完了理由ダイアログ
+  const [resolutionDialog, setResolutionDialog] = useState<{ issueId: number } | null>(null);
+  const [selectedResolution, setSelectedResolution] = useState<number | "">("");
 
   const getUser = (id: number | null) => users.find((u) => u.id === id);
   const getPriority = (id: number) => PRIORITIES.find((p) => p.id === id)!;
@@ -37,11 +41,28 @@ export default function KanbanBoard({ issues, users, onStatusChange, onClickIssu
 
   const handleDrop = (statusId: number) => {
     if (draggedIssue && draggedIssue.status_id !== statusId) {
-      onStatusChange(draggedIssue.id, statusId);
+      if (statusId === 4) {
+        setResolutionDialog({ issueId: draggedIssue.id });
+        setSelectedResolution("");
+      } else {
+        onStatusChange(draggedIssue.id, statusId);
+      }
     }
     setDraggedIssue(null);
     setDragOverColumn(null);
     dragCounter.current = {};
+  };
+
+  const handleResolutionConfirm = () => {
+    if (!resolutionDialog) return;
+    onStatusChange(resolutionDialog.issueId, 4, selectedResolution === "" ? null : Number(selectedResolution));
+    setResolutionDialog(null);
+    setSelectedResolution("");
+  };
+
+  const handleResolutionCancel = () => {
+    setResolutionDialog(null);
+    setSelectedResolution("");
   };
 
   const handleDragEnd = () => {
@@ -51,6 +72,7 @@ export default function KanbanBoard({ issues, users, onStatusChange, onClickIssu
   };
 
   return (
+    <>
     <div className="flex gap-4 overflow-x-auto pb-4 h-full">
       {STATUSES.map((status) => {
         const columnIssues = issues.filter((i) => i.status_id === status.id);
@@ -113,5 +135,37 @@ export default function KanbanBoard({ issues, users, onStatusChange, onClickIssu
         );
       })}
     </div>
+
+    {/* 完了理由ダイアログ */}
+    {resolutionDialog && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 p-6">
+          <h3 className="text-lg font-semibold mb-4">完了理由を選択</h3>
+          <select
+            value={selectedResolution}
+            onChange={(e) => setSelectedResolution(e.target.value === "" ? "" : Number(e.target.value))}
+            className="w-full border rounded-md px-3 py-2 text-sm bg-white mb-4"
+          >
+            <option value="">未選択</option>
+            {RESOLUTIONS.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={handleResolutionCancel}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+            >
+              キャンセル
+            </button>
+            <button
+              onClick={handleResolutionConfirm}
+              className="px-4 py-2 text-sm bg-brand-400 text-white rounded-md hover:bg-brand-500 transition-colors"
+            >
+              完了にする
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
