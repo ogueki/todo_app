@@ -10,12 +10,14 @@ import ProjectModal from "./components/ProjectModal.tsx";
 import FilterBar, { defaultFilters } from "./components/FilterBar.tsx";
 import type { Filters } from "./components/FilterBar.tsx";
 import LoginPage from "./components/LoginPage.tsx";
+import SignupPage from "./components/SignupPage.tsx";
 
 type ViewMode = "list" | "board";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [authPage, setAuthPage] = useState<"login" | "signup">("login");
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -46,6 +48,12 @@ export default function App() {
 
   const handleLogin = async (email: string, password: string) => {
     const { token, user } = await api.login(email, password);
+    api.setToken(token);
+    setCurrentUser(user);
+  };
+
+  const handleSignup = async (name: string, email: string, password: string) => {
+    const { token, user } = await api.signup(name, email, password);
     api.setToken(token);
     setCurrentUser(user);
   };
@@ -141,7 +149,10 @@ export default function App() {
   }
 
   if (!currentUser) {
-    return <LoginPage onLogin={handleLogin} />;
+    if (authPage === "signup") {
+      return <SignupPage onSignup={handleSignup} onSwitchToLogin={() => setAuthPage("login")} />;
+    }
+    return <LoginPage onLogin={handleLogin} onSwitchToSignup={() => setAuthPage("signup")} />;
   }
 
   return (

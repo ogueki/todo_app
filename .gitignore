@@ -9,3 +9,5 @@ dist/
 # アップロードされたアバター画像
 backend/uploads/avatars/*
 !backend/uploads/avatars/.gitkeep
+
+.vercel

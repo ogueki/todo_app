@@ -46,6 +46,18 @@ app.post("/api/auth/login", async (req: any, res: any) => {
   } catch (e: any) { console.error(e); res.status(500).json({ error: "サーバーエラー" }); }
 });
 
+app.post("/api/auth/signup", async (req: any, res: any) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) { res.status(400).json({ error: "名前、メールアドレス、パスワードは必須です" }); return; }
+    const existing = await db.queryOne("SELECT id FROM users WHERE email = $1", [email]);
+    if (existing) { res.status(409).json({ error: "このメールアドレスは既に登録されています" }); return; }
+    const user = await db.queryOne("INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email, avatar_url", [name, email, password]);
+    const token = jwt.sign({ id: user.id, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
+    res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, avatar_url: user.avatar_url } });
+  } catch (e: any) { console.error(e); res.status(500).json({ error: "サーバーエラー" }); }
+});
+
 app.get("/api/auth/me", async (req: any, res: any) => {
   try {
     const authHeader = req.headers.authorization;
