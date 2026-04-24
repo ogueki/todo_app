@@ -1,6 +1,6 @@
 import type { User, Project, Issue, Comment } from "./types.ts";
 
-const BASE = "/api";
+const BASE = import.meta.env.VITE_API_BASE || "/api";
 
 // トークン管理
 export function getToken(): string | null {
