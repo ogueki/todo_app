@@ -625,13 +625,11 @@ app.delete("/api/comments/:commentId", async (req: AuthRequest, res: Response) =
   }
 });
 
-// --- サーバー起動 (ローカル開発時のみ) ---
+// --- サーバー起動 ---
 initDatabase();
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () => {
-    console.log(`TaskBoard API サーバー起動: http://localhost:${PORT}`);
-  });
-}
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`TaskBoard API サーバー起動: port ${PORT}`);
+});
 
 export default app;
