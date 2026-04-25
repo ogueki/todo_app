@@ -144,6 +144,20 @@ export default function App() {
     setViewingIssue(issue);
   };
 
+  const openIssueFromNotification = async (projectId: number, issueId: number) => {
+    const project = projects.find((p) => p.id === projectId);
+    if (project && project.id !== selectedProject?.id) {
+      setSelectedProject(project);
+      setFilters(defaultFilters);
+    }
+    try {
+      const issue = await api.fetchIssue(projectId, issueId);
+      setViewingIssue(issue);
+    } catch {
+      alert("課題が見つかりませんでした");
+    }
+  };
+
   if (!authChecked) {
     return <div className="min-h-screen flex items-center justify-center text-gray-400">読み込み中...</div>;
   }
@@ -175,6 +189,7 @@ export default function App() {
           setCurrentUser(user);
           api.fetchUsers().then(setUsers);
         }}
+        onOpenNotificationIssue={openIssueFromNotification}
       />
 
       {/* 課題詳細画面 or 一覧画面 */}

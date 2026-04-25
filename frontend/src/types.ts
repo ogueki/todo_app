@@ -45,6 +45,21 @@ export interface Comment {
   created_at: string;
 }
 
+export interface Notification {
+  id: number;
+  user_id: number;
+  type: "assigned" | "mentioned" | "commented";
+  issue_id: number | null;
+  comment_id: number | null;
+  actor_id: number | null;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  project_id: number | null;
+  project_key: string | null;
+  issue_key: string | null;
+}
+
 export const STATUSES = [
   { id: 1, name: "未対応", color: "#9ca3af", bg: "#f3f4f6" },
   { id: 2, name: "処理中", color: "#3b82f6", bg: "#eff6ff" },

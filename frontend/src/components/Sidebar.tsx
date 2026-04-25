@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import type { Project, User } from "../types.ts";
 import * as api from "../api.ts";
 import Avatar from "./Avatar.tsx";
+import NotificationBell from "./NotificationBell.tsx";
 
 interface Props {
   projects: Project[];
@@ -11,9 +12,10 @@ interface Props {
   onAddProject: () => void;
   onLogout: () => void;
   onUserUpdated: (user: User) => void;
+  onOpenNotificationIssue: (projectId: number, issueId: number) => void;
 }
 
-export default function Sidebar({ projects, selectedProject, currentUser, onSelectProject, onAddProject, onLogout, onUserUpdated }: Props) {
+export default function Sidebar({ projects, selectedProject, currentUser, onSelectProject, onAddProject, onLogout, onUserUpdated, onOpenNotificationIssue }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,7 +45,10 @@ export default function Sidebar({ projects, selectedProject, currentUser, onSele
     <div className="w-60 bg-brand-900 text-white flex flex-col shrink-0">
       <div className="flex items-center justify-between px-4 py-3 border-b border-brand-800">
         <h1 className="text-lg font-bold text-brand-300">TaskBoard</h1>
-        <button onClick={() => setCollapsed(true)} className="text-brand-400 hover:text-white text-sm">✕</button>
+        <div className="flex items-center gap-1">
+          <NotificationBell onOpenIssue={onOpenNotificationIssue} />
+          <button onClick={() => setCollapsed(true)} className="text-brand-400 hover:text-white text-sm">✕</button>
+        </div>
       </div>
 
       <div className="px-3 py-2 flex items-center justify-between">

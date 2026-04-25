@@ -150,6 +150,24 @@ function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
 }
 app.use(authMiddleware);
 
+// --- 通知ヘルパー ---
+async function createAssignmentNotification(opts: {
+  assigneeId: number;
+  actorId: number;
+  issueId: number;
+  issueKey: string;
+  issueSubject: string;
+}): Promise<void> {
+  if (opts.assigneeId === opts.actorId) return; // 自分で自分にアサインしたら通知不要
+  const actor = await db.queryOne<{ name: string }>("SELECT name FROM users WHERE id = $1", [opts.actorId]);
+  const actorName = actor?.name ?? "誰か";
+  const message = `${actorName}さんがあなたを「${opts.issueKey} ${opts.issueSubject}」の担当者に設定しました`;
+  await db.run(
+    "INSERT INTO notifications (user_id, type, issue_id, actor_id, message) VALUES ($1, 'assigned', $2, $3, $4)",
+    [opts.assigneeId, opts.issueId, opts.actorId, message]
+  );
+}
+
 // --- ユーザー ---
 app.get("/api/users", async (_req: Request, res: Response) => {
   try {
@@ -424,7 +442,7 @@ app.post("/api/projects/:projectId/issues", async (req: AuthRequest, res: Respon
 
     const effectiveResolution = (status_id || 1) === 4 ? (resolution_id || null) : null;
 
-    const issue = await db.queryOne(`
+    const issue = await db.queryOne<any>(`
       INSERT INTO issues (project_id, issue_number, subject, description, status_id, priority_id, type_id, assignee_id, created_by, start_date, due_date, resolution_id, parent_issue_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *, (SELECT project_key FROM projects WHERE id = $1) as project_key,
@@ -437,6 +455,17 @@ app.post("/api/projects/:projectId/issues", async (req: AuthRequest, res: Respon
       effectiveResolution,
       parent_issue_id || null
     ]);
+
+    if (issue.assignee_id) {
+      await createAssignmentNotification({
+        assigneeId: issue.assignee_id,
+        actorId: req.user!.id,
+        issueId: issue.id,
+        issueKey: issue.issue_key,
+        issueSubject: issue.subject,
+      });
+    }
+
     res.status(201).json(issue);
   } catch (e) {
     console.error(e);
@@ -462,7 +491,7 @@ app.get("/api/projects/:projectId/issues/:issueId", async (req: Request, res: Re
   }
 });
 
-app.put("/api/projects/:projectId/issues/:issueId", async (req: Request, res: Response) => {
+app.put("/api/projects/:projectId/issues/:issueId", async (req: AuthRequest, res: Response) => {
   try {
     const { subject, description, status_id, priority_id, type_id, assignee_id, start_date, due_date, resolution_id, parent_issue_id } = req.body;
     if (!subject) {
@@ -510,7 +539,13 @@ app.put("/api/projects/:projectId/issues/:issueId", async (req: Request, res: Re
 
     const effectiveResolution = (status_id || 1) === 4 ? (resolution_id || null) : null;
 
-    const issue = await db.queryOne(`
+    // 通知判定用に変更前のassignee_idを取得
+    const before = await db.queryOne<{ assignee_id: number | null }>(
+      "SELECT assignee_id FROM issues WHERE id = $1 AND project_id = $2",
+      [req.params.issueId, req.params.projectId]
+    );
+
+    const issue = await db.queryOne<any>(`
       UPDATE issues SET subject = $1, description = $2, status_id = $3, priority_id = $4, type_id = $5,
       assignee_id = $6, start_date = $7, due_date = $8, resolution_id = $9, parent_issue_id = $10, updated_at = NOW()
       WHERE id = $11 AND project_id = $12
@@ -525,6 +560,18 @@ app.put("/api/projects/:projectId/issues/:issueId", async (req: Request, res: Re
       res.status(404).json({ error: "課題が見つかりません" });
       return;
     }
+
+    // 担当者が新たにセット or 別の人に変更された場合のみ通知
+    if (issue.assignee_id && issue.assignee_id !== before?.assignee_id) {
+      await createAssignmentNotification({
+        assigneeId: issue.assignee_id,
+        actorId: req.user!.id,
+        issueId: issue.id,
+        issueKey: issue.issue_key,
+        issueSubject: issue.subject,
+      });
+    }
+
     res.json(issue);
   } catch (e) {
     console.error(e);
@@ -627,6 +674,60 @@ app.delete("/api/comments/:commentId", async (req: AuthRequest, res: Response) =
       return;
     }
     await db.run("DELETE FROM comments WHERE id = $1", [req.params.commentId]);
+    res.status(204).end();
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "サーバーエラー" });
+  }
+});
+
+// --- 通知 ---
+app.get("/api/notifications", async (req: AuthRequest, res: Response) => {
+  try {
+    const items = await db.query(`
+      SELECT n.*, i.project_id,
+             (SELECT project_key FROM projects WHERE id = i.project_id) as project_key,
+             ((SELECT project_key FROM projects WHERE id = i.project_id) || '-' || i.issue_number) as issue_key
+      FROM notifications n
+      LEFT JOIN issues i ON i.id = n.issue_id
+      WHERE n.user_id = $1
+      ORDER BY n.created_at DESC
+      LIMIT 50
+    `, [req.user!.id]);
+    const unreadCount = await db.queryOne<{ count: string }>(
+      "SELECT COUNT(*) as count FROM notifications WHERE user_id = $1 AND is_read = FALSE",
+      [req.user!.id]
+    );
+    res.json({ items, unreadCount: Number(unreadCount?.count ?? 0) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "サーバーエラー" });
+  }
+});
+
+app.patch("/api/notifications/:id/read", async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await db.run(
+      "UPDATE notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2",
+      [req.params.id, req.user!.id]
+    );
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: "通知が見つかりません" });
+      return;
+    }
+    res.status(204).end();
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "サーバーエラー" });
+  }
+});
+
+app.patch("/api/notifications/read-all", async (req: AuthRequest, res: Response) => {
+  try {
+    await db.run(
+      "UPDATE notifications SET is_read = TRUE WHERE user_id = $1 AND is_read = FALSE",
+      [req.user!.id]
+    );
     res.status(204).end();
   } catch (e) {
     console.error(e);

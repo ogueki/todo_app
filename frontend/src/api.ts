@@ -1,4 +1,4 @@
-import type { User, Project, Issue, Comment } from "./types.ts";
+import type { User, Project, Issue, Comment, Notification } from "./types.ts";
 
 const BASE = import.meta.env.VITE_API_BASE || "/api";
 
@@ -62,6 +62,8 @@ export const fetchIssues = (projectId: number, params?: Record<string, string>) 
   const query = params ? "?" + new URLSearchParams(params).toString() : "";
   return request<Issue[]>(`/projects/${projectId}/issues${query}`);
 };
+export const fetchIssue = (projectId: number, issueId: number) =>
+  request<Issue>(`/projects/${projectId}/issues/${issueId}`);
 export const createIssue = (projectId: number, data: Partial<Issue>) =>
   request<Issue>(`/projects/${projectId}/issues`, { method: "POST", body: JSON.stringify(data) });
 export const updateIssue = (projectId: number, issueId: number, data: Partial<Issue>) =>
@@ -81,6 +83,14 @@ export const createComment = (issueId: number, data: { content: string }) =>
   request<Comment>(`/issues/${issueId}/comments`, { method: "POST", body: JSON.stringify(data) });
 export const deleteComment = (commentId: number) =>
   request<void>(`/comments/${commentId}`, { method: "DELETE" });
+
+// 通知
+export const fetchNotifications = () =>
+  request<{ items: Notification[]; unreadCount: number }>("/notifications");
+export const markNotificationRead = (id: number) =>
+  request<void>(`/notifications/${id}/read`, { method: "PATCH" });
+export const markAllNotificationsRead = () =>
+  request<void>("/notifications/read-all", { method: "PATCH" });
 
 // アバター
 export async function uploadAvatar(file: File): Promise<User> {
