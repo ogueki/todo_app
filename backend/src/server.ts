@@ -4,7 +4,7 @@ import cors from "cors";
 import jwt from "jsonwebtoken";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
-import db, { initDatabase } from "./database";
+import db, { initDatabase } from "./database.js";
 
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || "taskboard-dev-secret";
