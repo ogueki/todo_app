@@ -3,6 +3,8 @@ import type { Issue, User, Comment } from "../types.ts";
 import { STATUSES, PRIORITIES, TYPES, RESOLUTIONS } from "../types.ts";
 import * as api from "../api.ts";
 import Avatar from "./Avatar.tsx";
+import MentionTextarea from "./MentionTextarea.tsx";
+import { renderWithMentions } from "../utils/mentions.tsx";
 
 interface Props {
   issue: Issue | null; // null = 新規作成
@@ -195,12 +197,15 @@ export default function IssueModal({ issue, issues, users, defaultParentIssueId,
 
             {/* コメント入力 */}
             <div className="flex gap-2 mb-4">
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="コメントを入力..."
-                className="flex-1 border rounded-md px-3 py-2 text-sm resize-none h-16"
-              />
+              <div className="flex-1">
+                <MentionTextarea
+                  value={newComment}
+                  onChange={setNewComment}
+                  users={users}
+                  placeholder="コメントを入力（@でメンション）..."
+                  className="w-full border rounded-md px-3 py-2 text-sm resize-none h-16"
+                />
+              </div>
               <button
                 onClick={handleAddComment}
                 disabled={!newComment.trim()}
@@ -232,7 +237,7 @@ export default function IssueModal({ issue, issues, users, defaultParentIssueId,
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{c.content}</p>
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{renderWithMentions(c.content, users)}</p>
                   </div>
                 ))}
               </div>

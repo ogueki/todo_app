@@ -168,6 +168,47 @@ async function createAssignmentNotification(opts: {
   );
 }
 
+// コメント本文から @<ユーザー名> を抽出して該当ユーザーIDを返す
+// 全ユーザー名を長い順に走査して「@」直後に名前が出現すれば抽出（部分一致による誤マッチ回避）
+async function extractMentionedUserIds(content: string): Promise<number[]> {
+  const allUsers = await db.query<{ id: number; name: string }>("SELECT id, name FROM users");
+  // 名前の長い順にソート（@田中 と @田中太郎 がある場合に田中太郎を優先）
+  const sorted = [...allUsers].sort((a, b) => b.name.length - a.name.length);
+  const mentionedIds = new Set<number>();
+  for (let i = 0; i < content.length; i++) {
+    if (content[i] !== "@") continue;
+    for (const u of sorted) {
+      if (content.startsWith(u.name, i + 1)) {
+        mentionedIds.add(u.id);
+        i += u.name.length; // マッチしたぶんスキップ
+        break;
+      }
+    }
+  }
+  return [...mentionedIds];
+}
+
+async function createMentionNotifications(opts: {
+  mentionedIds: number[];
+  actorId: number;
+  issueId: number;
+  commentId: number;
+  issueKey: string;
+  issueSubject: string;
+}): Promise<void> {
+  if (opts.mentionedIds.length === 0) return;
+  const actor = await db.queryOne<{ name: string }>("SELECT name FROM users WHERE id = $1", [opts.actorId]);
+  const actorName = actor?.name ?? "誰か";
+  const message = `${actorName}さんがあなたを「${opts.issueKey} ${opts.issueSubject}」のコメントでメンションしました`;
+  for (const userId of opts.mentionedIds) {
+    if (userId === opts.actorId) continue; // 自分自身へのメンションは無視
+    await db.run(
+      "INSERT INTO notifications (user_id, type, issue_id, comment_id, actor_id, message) VALUES ($1, 'mentioned', $2, $3, $4, $5)",
+      [userId, opts.issueId, opts.commentId, opts.actorId, message]
+    );
+  }
+}
+
 // --- ユーザー ---
 app.get("/api/users", async (_req: Request, res: Response) => {
   try {
@@ -645,16 +686,34 @@ app.post("/api/issues/:issueId/comments", async (req: AuthRequest, res: Response
       res.status(400).json({ error: "コメント内容は必須です" });
       return;
     }
-    const issue = await db.queryOne("SELECT id FROM issues WHERE id = $1", [req.params.issueId]);
+    const issue = await db.queryOne<any>(`
+      SELECT i.id, i.subject, i.issue_number,
+             (SELECT project_key FROM projects WHERE id = i.project_id) as project_key,
+             ((SELECT project_key FROM projects WHERE id = i.project_id) || '-' || i.issue_number) as issue_key
+      FROM issues i WHERE i.id = $1
+    `, [req.params.issueId]);
     if (!issue) {
       res.status(404).json({ error: "課題が見つかりません" });
       return;
     }
-    const comment = await db.queryOne(`
+    const trimmedContent = content.trim();
+    const comment = await db.queryOne<any>(`
       INSERT INTO comments (issue_id, user_id, content) VALUES ($1, $2, $3)
       RETURNING *, (SELECT name FROM users WHERE id = $2) as user_name,
                    (SELECT avatar_url FROM users WHERE id = $2) as user_avatar_url
-    `, [req.params.issueId, req.user!.id, content.trim()]);
+    `, [req.params.issueId, req.user!.id, trimmedContent]);
+
+    // メンション通知
+    const mentionedIds = await extractMentionedUserIds(trimmedContent);
+    await createMentionNotifications({
+      mentionedIds,
+      actorId: req.user!.id,
+      issueId: issue.id,
+      commentId: comment.id,
+      issueKey: issue.issue_key,
+      issueSubject: issue.subject,
+    });
+
     res.status(201).json(comment);
   } catch (e) {
     console.error(e);
