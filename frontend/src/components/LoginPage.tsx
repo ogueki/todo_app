@@ -81,11 +81,9 @@ export default function LoginPage({ onLogin, onSwitchToSignup }: Props) {
         </div>
 
         <div className="mt-4 border-t pt-4">
-          <p className="text-xs text-gray-400 mb-2">開発用アカウント（パスワード: password）</p>
+          <p className="text-xs text-gray-400 mb-2">デモアカウント（パスワード: password）</p>
           <div className="space-y-1 text-xs text-gray-500">
             <p>tanaka@example.com — 田中太郎</p>
-            <p>sato@example.com — 佐藤花子</p>
-            <p>suzuki@example.com — 鈴木一郎</p>
           </div>
         </div>
       </div>

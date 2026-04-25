@@ -8,14 +8,13 @@ interface Props {
   issue: Issue | null; // null = 新規作成
   issues: Issue[]; // 親課題選択用
   users: User[];
-  currentUserId: number;
   defaultParentIssueId?: number | null;
   onSave: (data: Partial<Issue>) => void;
   onDelete?: () => void;
   onClose: () => void;
 }
 
-export default function IssueModal({ issue, issues, users, currentUserId, defaultParentIssueId, onSave, onDelete, onClose }: Props) {
+export default function IssueModal({ issue, issues, users, defaultParentIssueId, onSave, onDelete, onClose }: Props) {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [statusId, setStatusId] = useState(1);
@@ -75,7 +74,7 @@ export default function IssueModal({ issue, issues, users, currentUserId, defaul
 
   const handleAddComment = async () => {
     if (!issue || !newComment.trim()) return;
-    const comment = await api.createComment(issue.id, { content: newComment.trim(), user_id: currentUserId });
+    const comment = await api.createComment(issue.id, { content: newComment.trim() });
     setComments((prev) => [comment, ...prev]);
     setNewComment("");
   };

@@ -2,12 +2,19 @@ import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
 import db, { initDatabase } from "./database.js";
 
+const BCRYPT_ROUNDS = 10;
+
 const app = express();
-const JWT_SECRET = process.env.JWT_SECRET || "taskboard-dev-secret";
+if (!process.env.JWT_SECRET) {
+  console.error("JWT_SECRET environment variable is required");
+  process.exit(1);
+}
+const JWT_SECRET: string = process.env.JWT_SECRET;
 
 // Supabase Storage クライアント
 const supabase = createClient(
@@ -21,6 +28,7 @@ app.use(cors({ origin: corsOrigins && corsOrigins.length > 0 ? corsOrigins : tru
 app.use(express.json({ limit: "4mb" }));
 
 // --- ヘルスチェック（認証不要） ---
+const isProduction = process.env.NODE_ENV === "production";
 app.get("/api/health", async (_req: Request, res: Response) => {
   try {
     const result = await db.queryOne<{ now: string }>("SELECT NOW() as now");
@@ -28,23 +36,19 @@ app.get("/api/health", async (_req: Request, res: Response) => {
       status: "ok",
       db: result ? "connected" : "no result",
       timestamp: result?.now,
-      env: {
-        hasDbUrl: !!process.env.DATABASE_URL,
-        hasSupabaseUrl: !!process.env.SUPABASE_URL,
-        hasJwtSecret: !!process.env.JWT_SECRET,
-        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      },
+      ...(isProduction ? {} : {
+        env: {
+          hasDbUrl: !!process.env.DATABASE_URL,
+          hasSupabaseUrl: !!process.env.SUPABASE_URL,
+          hasJwtSecret: !!process.env.JWT_SECRET,
+          hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+        },
+      }),
     });
   } catch (e: any) {
     res.status(500).json({
       status: "error",
-      error: e.message,
-      env: {
-        hasDbUrl: !!process.env.DATABASE_URL,
-        hasSupabaseUrl: !!process.env.SUPABASE_URL,
-        hasJwtSecret: !!process.env.JWT_SECRET,
-        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      },
+      error: isProduction ? "internal error" : e.message,
     });
   }
 });
@@ -65,7 +69,7 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
       "SELECT id, name, email, password, avatar_url FROM users WHERE email = $1",
       [email]
     );
-    if (!user || user.password !== password) {
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       res.status(401).json({ error: "メールアドレスまたはパスワードが正しくありません" });
       return;
     }
@@ -84,14 +88,19 @@ app.post("/api/auth/signup", async (req: Request, res: Response) => {
       res.status(400).json({ error: "名前、メールアドレス、パスワードは必須です" });
       return;
     }
+    if (password.length < 8) {
+      res.status(400).json({ error: "パスワードは8文字以上にしてください" });
+      return;
+    }
     const existing = await db.queryOne<any>("SELECT id FROM users WHERE email = $1", [email]);
     if (existing) {
       res.status(409).json({ error: "このメールアドレスは既に登録されています" });
       return;
     }
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     const user = await db.queryOne<any>(
       "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email, avatar_url",
-      [name, email, password]
+      [name, email, passwordHash]
     );
     const token = jwt.sign({ id: user.id, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
     res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, avatar_url: user.avatar_url } });
@@ -362,10 +371,10 @@ app.get("/api/projects/:projectId/issues", async (req: Request, res: Response) =
   }
 });
 
-app.post("/api/projects/:projectId/issues", async (req: Request, res: Response) => {
+app.post("/api/projects/:projectId/issues", async (req: AuthRequest, res: Response) => {
   try {
     const { projectId } = req.params;
-    const { subject, description, status_id, priority_id, type_id, assignee_id, created_by, start_date, due_date, resolution_id, parent_issue_id } = req.body;
+    const { subject, description, status_id, priority_id, type_id, assignee_id, start_date, due_date, resolution_id, parent_issue_id } = req.body;
 
     if (!subject) {
       res.status(400).json({ error: "subject は必須です" });
@@ -423,7 +432,7 @@ app.post("/api/projects/:projectId/issues", async (req: Request, res: Response) 
     `, [
       projectId, issueNumber, subject, description || "",
       status_id || 1, priority_id || 2, type_id || 1,
-      assignee_id || null, created_by || 1,
+      assignee_id || null, req.user!.id,
       start_date || null, due_date || null,
       effectiveResolution,
       parent_issue_id || null
@@ -582,9 +591,9 @@ app.get("/api/issues/:issueId/comments", async (req: Request, res: Response) => 
   }
 });
 
-app.post("/api/issues/:issueId/comments", async (req: Request, res: Response) => {
+app.post("/api/issues/:issueId/comments", async (req: AuthRequest, res: Response) => {
   try {
-    const { content, user_id } = req.body;
+    const { content } = req.body;
     if (!content || !content.trim()) {
       res.status(400).json({ error: "コメント内容は必須です" });
       return;
@@ -598,7 +607,7 @@ app.post("/api/issues/:issueId/comments", async (req: Request, res: Response) =>
       INSERT INTO comments (issue_id, user_id, content) VALUES ($1, $2, $3)
       RETURNING *, (SELECT name FROM users WHERE id = $2) as user_name,
                    (SELECT avatar_url FROM users WHERE id = $2) as user_avatar_url
-    `, [req.params.issueId, user_id || 1, content.trim()]);
+    `, [req.params.issueId, req.user!.id, content.trim()]);
     res.status(201).json(comment);
   } catch (e) {
     console.error(e);

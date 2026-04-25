@@ -77,7 +77,7 @@ export const updateIssueStatus = (projectId: number, issueId: number, statusId: 
 // コメント
 export const fetchComments = (issueId: number) =>
   request<Comment[]>(`/issues/${issueId}/comments`);
-export const createComment = (issueId: number, data: { content: string; user_id: number }) =>
+export const createComment = (issueId: number, data: { content: string }) =>
   request<Comment>(`/issues/${issueId}/comments`, { method: "POST", body: JSON.stringify(data) });
 export const deleteComment = (commentId: number) =>
   request<void>(`/comments/${commentId}`, { method: "DELETE" });

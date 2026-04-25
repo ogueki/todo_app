@@ -102,7 +102,7 @@ export default function IssueDetailPage({
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
-    const comment = await api.createComment(issue.id, { content: newComment.trim(), user_id: currentUserId });
+    const comment = await api.createComment(issue.id, { content: newComment.trim() });
     setComments((prev) => [comment, ...prev]);
     setNewComment("");
   };

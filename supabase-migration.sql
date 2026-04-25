@@ -51,10 +51,11 @@ CREATE TABLE IF NOT EXISTS comments (
 
 -- ========== シードデータ ==========
 
+-- シードユーザーのパスワードはbcryptハッシュ化済み（元の平文は "password"）
 INSERT INTO users (name, email, password) VALUES
-  ('田中太郎', 'tanaka@example.com', 'password'),
-  ('佐藤花子', 'sato@example.com', 'password'),
-  ('鈴木一郎', 'suzuki@example.com', 'password');
+  ('田中太郎', 'tanaka@example.com', '$2b$10$GIQ1Pd/WvPgY0pd81YCHFe6tr1x9GlNKOd0O.QNlofve9270RRB/y'),
+  ('佐藤花子', 'sato@example.com', '$2b$10$GIQ1Pd/WvPgY0pd81YCHFe6tr1x9GlNKOd0O.QNlofve9270RRB/y'),
+  ('鈴木一郎', 'suzuki@example.com', '$2b$10$GIQ1Pd/WvPgY0pd81YCHFe6tr1x9GlNKOd0O.QNlofve9270RRB/y');
 
 INSERT INTO projects (project_key, name, description) VALUES
   ('SAMPLE', 'サンプルプロジェクト', 'TaskBoardの動作確認用プロジェクトです。');

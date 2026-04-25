@@ -129,7 +129,7 @@ export default function App() {
   // --- 課題操作 ---
   const handleCreateIssue = async (data: Partial<Issue>) => {
     if (!selectedProject) return;
-    await api.createIssue(selectedProject.id, { ...data, created_by: currentUser!.id });
+    await api.createIssue(selectedProject.id, data);
     loadIssues();
     setShowIssueModal(false);
   };
@@ -279,7 +279,6 @@ export default function App() {
           issue={null}
           issues={issues}
           users={users}
-          currentUserId={currentUser.id}
           defaultParentIssueId={newIssueParentId}
           onSave={handleCreateIssue}
           onClose={() => { setShowIssueModal(false); setNewIssueParentId(null); }}
