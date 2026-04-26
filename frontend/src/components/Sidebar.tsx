@@ -12,7 +12,7 @@ interface Props {
   onAddProject: () => void;
   onLogout: () => void;
   onUserUpdated: (user: User) => void;
-  onOpenNotificationIssue: (projectId: number, issueId: number) => void;
+  onOpenNotificationIssue: (projectKey: string, issueKey: string) => void;
   onCloseMobile?: () => void;
 }
 

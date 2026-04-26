@@ -3,7 +3,7 @@ import type { Notification } from "../types.ts";
 import * as api from "../api.ts";
 
 interface Props {
-  onOpenIssue: (projectId: number, issueId: number) => void;
+  onOpenIssue: (projectKey: string, issueKey: string) => void;
 }
 
 const POLL_INTERVAL_MS = 60_000; // 1分ごとにポーリング
@@ -44,8 +44,8 @@ export default function NotificationBell({ onOpenIssue }: Props) {
       setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
       setUnreadCount((c) => Math.max(0, c - 1));
     }
-    if (n.project_id && n.issue_id) {
-      onOpenIssue(n.project_id, n.issue_id);
+    if (n.project_key && n.issue_key) {
+      onOpenIssue(n.project_key, n.issue_key);
       setOpen(false);
     }
   };
