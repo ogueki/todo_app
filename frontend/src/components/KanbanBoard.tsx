@@ -80,7 +80,7 @@ export default function KanbanBoard({ issues, users, onStatusChange, onClickIssu
         return (
           <div
             key={status.id}
-            className={`flex-1 min-w-[260px] rounded-lg flex flex-col transition-colors ${
+            className={`flex-1 min-w-[220px] md:min-w-[260px] rounded-lg flex flex-col transition-colors ${
               isOver ? "bg-brand-100 ring-2 ring-brand-300" : "bg-gray-100"
             }`}
             onDragOver={(e) => e.preventDefault()}

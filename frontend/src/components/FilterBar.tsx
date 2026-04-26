@@ -41,13 +41,13 @@ export default function FilterBar({ filters, users, onChange }: Props) {
       />
 
       {/* ステータス */}
-      <div className="flex items-center gap-1">
-        <span className="text-gray-500 text-xs mr-1">ステータス:</span>
+      <div className="flex items-center gap-1 flex-wrap">
+        <span className="text-gray-500 text-xs mr-0.5">状態:</span>
         {STATUSES.map((s) => (
           <button
             key={s.id}
             onClick={() => onChange({ ...filters, status: toggleArray(filters.status, s.id) })}
-            className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+            className={`px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
               filters.status.includes(s.id)
                 ? "text-white"
                 : "text-gray-500 bg-gray-200 hover:bg-gray-300"
@@ -60,13 +60,13 @@ export default function FilterBar({ filters, users, onChange }: Props) {
       </div>
 
       {/* 優先度 */}
-      <div className="flex items-center gap-1">
-        <span className="text-gray-500 text-xs mr-1">優先度:</span>
+      <div className="flex items-center gap-1 flex-wrap">
+        <span className="text-gray-500 text-xs mr-0.5">優先:</span>
         {PRIORITIES.map((p) => (
           <button
             key={p.id}
             onClick={() => onChange({ ...filters, priority: toggleArray(filters.priority, p.id) })}
-            className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+            className={`px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
               filters.priority.includes(p.id)
                 ? "text-white"
                 : "text-gray-500 bg-gray-200 hover:bg-gray-300"

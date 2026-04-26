@@ -58,7 +58,7 @@ export default function Sidebar({ projects, selectedProject, currentUser, onSele
   };
 
   return (
-    <div className="w-60 h-full bg-brand-900 text-white flex flex-col shrink-0">
+    <div className="w-72 max-w-[85vw] md:w-60 md:max-w-none h-full bg-brand-900 text-white flex flex-col shrink-0">
       <div className="flex items-center justify-between px-4 py-3 border-b border-brand-800">
         <h1 className="text-lg font-bold text-brand-300">TaskBoard</h1>
         <div className="flex items-center gap-1">

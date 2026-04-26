@@ -51,13 +51,13 @@ export default function IssueTable({ issues, users, onClickIssue }: Props) {
       <table className="w-full text-sm text-left">
         <thead className="bg-gray-50 border-b text-gray-600">
           <tr>
-            <th className="px-4 py-3 font-medium">キー</th>
-            <th className="px-4 py-3 font-medium">種別</th>
-            <th className="px-4 py-3 font-medium min-w-[200px]">件名</th>
-            <th className="px-4 py-3 font-medium">ステータス</th>
-            <th className="px-4 py-3 font-medium">優先度</th>
-            <th className="px-4 py-3 font-medium">担当者</th>
-            <th className="px-4 py-3 font-medium">期限日</th>
+            <th className="px-3 py-2 font-medium whitespace-nowrap">キー</th>
+            <th className="px-3 py-2 font-medium whitespace-nowrap">種別</th>
+            <th className="px-3 py-2 font-medium min-w-[200px]">件名</th>
+            <th className="px-3 py-2 font-medium whitespace-nowrap">ステータス</th>
+            <th className="px-3 py-2 font-medium whitespace-nowrap">優先度</th>
+            <th className="px-3 py-2 font-medium whitespace-nowrap">担当者</th>
+            <th className="px-3 py-2 font-medium whitespace-nowrap">期限日</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -72,15 +72,15 @@ export default function IssueTable({ issues, users, onClickIssue }: Props) {
                 onClick={() => onClickIssue(issue)}
                 className={`hover:bg-gray-50 cursor-pointer transition-colors ${isChild ? "bg-gray-50/50" : ""}`}
               >
-                <td className="px-4 py-3 font-mono text-xs text-gray-500">
+                <td className="px-3 py-2 font-mono text-xs text-gray-500 whitespace-nowrap">
                   {isChild && <span className="text-gray-300 mr-1">└</span>}
                   {issue.issue_key}
                 </td>
-                <td className="px-4 py-3 text-gray-600">{type.name}</td>
-                <td className={`px-4 py-3 font-medium text-gray-900 ${isChild ? "pl-8" : ""}`}>
+                <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{type.name}</td>
+                <td className={`px-3 py-2 font-medium text-gray-900 ${isChild ? "pl-6" : ""}`}>
                   {issue.subject}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-2 whitespace-nowrap">
                   <span
                     className="inline-block px-2 py-0.5 rounded text-xs font-medium"
                     style={{ backgroundColor: status.bg, color: status.color }}
@@ -88,12 +88,12 @@ export default function IssueTable({ issues, users, onClickIssue }: Props) {
                     {status.name}
                   </span>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-2 whitespace-nowrap">
                   <span className="text-xs font-medium" style={{ color: priority.color }}>
                     ● {priority.name}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-600">
+                <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
                   {assignee ? (
                     <span className="flex items-center gap-1.5">
                       <Avatar name={assignee.name} avatarFilename={assignee.avatar_url} size="xs" />
@@ -101,7 +101,7 @@ export default function IssueTable({ issues, users, onClickIssue }: Props) {
                     </span>
                   ) : "—"}
                 </td>
-                <td className="px-4 py-3 text-gray-500 text-xs">{issue.due_date ?? "—"}</td>
+                <td className="px-3 py-2 text-gray-500 text-xs whitespace-nowrap">{issue.due_date ?? "—"}</td>
               </tr>
             );
           })}
