@@ -170,10 +170,10 @@ export default function IssueDetailPage({
 
       {error && <p className="text-red-500 text-sm px-6 py-2 bg-red-50">{error}</p>}
 
-      {/* メインコンテンツ */}
-      <div className="flex-1 overflow-auto flex flex-col md:flex-row">
+      {/* メインコンテンツ（モバイルは親で全体スクロール、デスクトップは各カラムで独立スクロール） */}
+      <div className="flex-1 overflow-auto md:overflow-hidden flex flex-col md:flex-row">
         {/* 左: 本文エリア */}
-        <div className="flex-1 p-4 md:p-6 overflow-auto min-w-0">
+        <div className="flex-1 p-4 md:p-6 md:overflow-auto min-w-0">
           {/* 件名 */}
           {editing ? (
             <input
@@ -331,7 +331,7 @@ export default function IssueDetailPage({
         </div>
 
         {/* 右: 属性パネル（モバイル時は下に縦積み） */}
-        <div className="w-full md:w-64 border-t md:border-t-0 md:border-l border-gray-200 bg-brand-50/30 p-4 space-y-4 overflow-auto shrink-0">
+        <div className="w-full md:w-64 border-t md:border-t-0 md:border-l border-gray-200 bg-brand-50/30 p-4 space-y-4 md:overflow-auto shrink-0">
           <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">属性</h3>
 
           {/* ステータス */}
