@@ -13,9 +13,10 @@ interface Props {
   onLogout: () => void;
   onUserUpdated: (user: User) => void;
   onOpenNotificationIssue: (projectId: number, issueId: number) => void;
+  onCloseMobile?: () => void;
 }
 
-export default function Sidebar({ projects, selectedProject, currentUser, onSelectProject, onAddProject, onLogout, onUserUpdated, onOpenNotificationIssue }: Props) {
+export default function Sidebar({ projects, selectedProject, currentUser, onSelectProject, onAddProject, onLogout, onUserUpdated, onOpenNotificationIssue, onCloseMobile }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -31,9 +32,10 @@ export default function Sidebar({ projects, selectedProject, currentUser, onSele
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // collapsed はデスクトップ専用の機能（モバイルではドロワー閉で代替）
   if (collapsed) {
     return (
-      <div className="w-12 bg-brand-900 text-white flex flex-col items-center pt-4 shrink-0">
+      <div className="w-12 h-full bg-brand-900 text-white flex flex-col items-center pt-4 shrink-0">
         <button onClick={() => setCollapsed(false)} className="text-brand-300 hover:text-white p-2" title="メニューを開く">
           ☰
         </button>
@@ -41,13 +43,27 @@ export default function Sidebar({ projects, selectedProject, currentUser, onSele
     );
   }
 
+  const handleCloseClick = () => {
+    if (onCloseMobile) {
+      // モバイル時: ドロワーを閉じる（デスクトップではこのハンドラは呼ばれないので安全）
+      // ただしデスクトップでも同じボタンで collapse できるよう、画面幅で分岐
+      if (window.matchMedia("(min-width: 768px)").matches) {
+        setCollapsed(true);
+      } else {
+        onCloseMobile();
+      }
+    } else {
+      setCollapsed(true);
+    }
+  };
+
   return (
-    <div className="w-60 bg-brand-900 text-white flex flex-col shrink-0">
+    <div className="w-60 h-full bg-brand-900 text-white flex flex-col shrink-0">
       <div className="flex items-center justify-between px-4 py-3 border-b border-brand-800">
         <h1 className="text-lg font-bold text-brand-300">TaskBoard</h1>
         <div className="flex items-center gap-1">
           <NotificationBell onOpenIssue={onOpenNotificationIssue} />
-          <button onClick={() => setCollapsed(true)} className="text-brand-400 hover:text-white text-sm">✕</button>
+          <button onClick={handleCloseClick} className="text-brand-400 hover:text-white text-sm p-1" title="メニューを閉じる">✕</button>
         </div>
       </div>
 

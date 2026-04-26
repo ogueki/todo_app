@@ -30,14 +30,14 @@ export default function FilterBar({ filters, users, onChange }: Props) {
     arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
 
   return (
-    <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-brand-50/50 border-b border-gray-200 text-sm">
+    <div className="flex flex-wrap items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 bg-brand-50/50 border-b border-gray-200 text-sm">
       {/* キーワード */}
       <input
         type="text"
         value={filters.keyword}
         onChange={(e) => onChange({ ...filters, keyword: e.target.value })}
         placeholder="キーワード検索..."
-        className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+        className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
       />
 
       {/* ステータス */}

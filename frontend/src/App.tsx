@@ -34,6 +34,9 @@ export default function App() {
   // 課題詳細画面
   const [viewingIssue, setViewingIssue] = useState<Issue | null>(null);
 
+  // モバイル用サイドバー開閉
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   // 認証チェック
   useEffect(() => {
     if (api.getToken()) {
@@ -171,26 +174,47 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-brand-50">
-      <Sidebar
-        projects={projects}
-        selectedProject={selectedProject}
-        currentUser={currentUser}
-        onSelectProject={(p) => {
-          setSelectedProject(p);
-          setFilters(defaultFilters);
-          setViewingIssue(null);
-        }}
-        onAddProject={() => {
-          setEditingProject(null);
-          setShowProjectModal(true);
-        }}
-        onLogout={handleLogout}
-        onUserUpdated={(user) => {
-          setCurrentUser(user);
-          api.fetchUsers().then(setUsers);
-        }}
-        onOpenNotificationIssue={openIssueFromNotification}
-      />
+      {/* モバイル時の背景オーバーレイ */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* サイドバー: モバイルではドロワー、デスクトップでは固定列 */}
+      <div
+        className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-200 md:relative md:translate-x-0 md:z-auto ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <Sidebar
+          projects={projects}
+          selectedProject={selectedProject}
+          currentUser={currentUser}
+          onSelectProject={(p) => {
+            setSelectedProject(p);
+            setFilters(defaultFilters);
+            setViewingIssue(null);
+            setSidebarOpen(false);
+          }}
+          onAddProject={() => {
+            setEditingProject(null);
+            setShowProjectModal(true);
+            setSidebarOpen(false);
+          }}
+          onLogout={handleLogout}
+          onUserUpdated={(user) => {
+            setCurrentUser(user);
+            api.fetchUsers().then(setUsers);
+          }}
+          onOpenNotificationIssue={(projectId, issueId) => {
+            openIssueFromNotification(projectId, issueId);
+            setSidebarOpen(false);
+          }}
+          onCloseMobile={() => setSidebarOpen(false)}
+        />
+      </div>
 
       {/* 課題詳細画面 or 一覧画面 */}
       {viewingIssue && selectedProject ? (
@@ -217,10 +241,22 @@ export default function App() {
           {selectedProject ? (
             <>
               {/* ヘッダー */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-2 px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 bg-white flex-wrap">
+                <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                  <button
+                    onClick={() => setSidebarOpen(true)}
+                    className="md:hidden text-gray-500 hover:text-gray-700 p-1 -ml-1"
+                    title="メニューを開く"
+                    aria-label="メニューを開く"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="3" y1="6" x2="21" y2="6" />
+                      <line x1="3" y1="12" x2="21" y2="12" />
+                      <line x1="3" y1="18" x2="21" y2="18" />
+                    </svg>
+                  </button>
                   <h2
-                    className="text-xl font-bold cursor-pointer hover:text-brand-500 transition-colors"
+                    className="text-lg md:text-xl font-bold cursor-pointer hover:text-brand-500 transition-colors truncate"
                     onClick={() => {
                       setEditingProject(selectedProject);
                       setShowProjectModal(true);
@@ -228,9 +264,9 @@ export default function App() {
                   >
                     {selectedProject.name}
                   </h2>
-                  <span className="text-sm text-gray-400 font-mono">{selectedProject.project_key}</span>
+                  <span className="text-xs md:text-sm text-gray-400 font-mono shrink-0">{selectedProject.project_key}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   {/* 表示切替 */}
                   <div className="flex border border-gray-300 rounded-md overflow-hidden text-sm">
                     <button

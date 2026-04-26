@@ -108,7 +108,7 @@ export default function IssueModal({ issue, issues, users, defaultParentIssueId,
               className={inputClass} maxLength={200} placeholder="課題の件名を入力" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">種別</label>
               <select value={typeId} onChange={(e) => setTypeId(Number(e.target.value))} className={selectClass}>
@@ -147,7 +147,7 @@ export default function IssueModal({ issue, issues, users, defaultParentIssueId,
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">開始日</label>
               <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
