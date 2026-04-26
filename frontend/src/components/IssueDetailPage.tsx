@@ -219,7 +219,7 @@ export default function IssueDetailPage({
             {childIssues.length === 0 ? (
               <p className="text-sm text-gray-400">子課題はありません</p>
             ) : (
-              <div className="border rounded-md overflow-hidden">
+              <div className="border rounded-md overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 text-xs text-gray-500 border-b">
