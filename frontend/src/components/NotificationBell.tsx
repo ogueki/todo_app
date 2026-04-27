@@ -53,7 +53,7 @@ export default function NotificationBell({ onOpenIssue }: Props) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-50 max-h-[480px] flex flex-col">
+        <div className="fixed top-14 left-4 right-4 md:absolute md:top-full md:left-auto md:right-0 md:mt-2 md:w-80 max-h-[70vh] md:max-h-[480px] bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-50 flex flex-col">
           <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200">
             <span className="text-sm font-semibold">通知</span>
             <button
