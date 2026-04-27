@@ -194,7 +194,7 @@ function EmptyShell({ currentUser, projects, setProjects, setUsers, onLogout, on
   };
 
   return (
-    <div className="flex h-screen bg-brand-50">
+    <div className="flex min-h-dvh md:h-dvh bg-brand-50">
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
@@ -372,7 +372,7 @@ function ProjectShell({ currentUser, projects, users, projectsLoaded, setProject
   }
 
   return (
-    <div className="flex h-screen bg-brand-50">
+    <div className="flex min-h-dvh md:h-dvh bg-brand-50">
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
@@ -476,18 +476,20 @@ function ProjectShell({ currentUser, projects, users, projectsLoaded, setProject
 
           <FilterBar filters={filters} users={users} onChange={setFilters} />
 
-          <div className="flex-1 overflow-auto p-4">
-            {viewMode === "list" ? (
+          {viewMode === "list" ? (
+            <div className="flex-1 p-4 md:overflow-auto">
               <IssueTable issues={issues} users={users} onClickIssue={openIssue} />
-            ) : (
+            </div>
+          ) : (
+            <div className="flex-1 p-4 overflow-auto">
               <KanbanBoard
                 issues={issues}
                 users={users}
                 onStatusChange={handleStatusChange}
                 onClickIssue={openIssue}
               />
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
