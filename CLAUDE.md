@@ -3,11 +3,11 @@
 Backlog風タスク管理WEBアプリケーション。
 
 ## 技術スタック
-- **フロントエンド**: React + TypeScript + Vite + Tailwind CSS (`frontend/`)
+- **フロントエンド**: React + TypeScript + Vite + Tailwind CSS + React Router (`frontend/`)
 - **バックエンド**: Node.js + Express + TypeScript (`backend/`)
 - **DB**: PostgreSQL (Supabase)
 - **ストレージ**: Supabase Storage（アバター画像）
-- **デプロイ**: Vercel（サーバーレス）
+- **デプロイ**: フロントエンド → Vercel / バックエンド → Render（Web Service・無料枠）
 
 ## ディレクトリ構成
 ```
@@ -23,11 +23,9 @@ todoapp/
 ├── frontend/
 │   ├── src/
 │   └── package.json
-├── api/
-│   ├── index.ts               # Vercelサーバーレス関数
-│   └── _database.ts           # DB接続ヘルパー
-├── supabase-migration.sql     # スキーマ＆シードデータ
-└── vercel.json                # Vercelデプロイ設定
+├── migrations/                # 追加マイグレーション（002, 003 …）
+├── supabase-migration.sql     # 初期スキーマ＆シードデータ
+└── vercel.json                # Vercel SPA リライト設定
 ```
 
 ## 開発ルール
@@ -35,7 +33,8 @@ todoapp/
 - 仕様は `docs/spec.md` に記載。実装前に仕様を確認すること
 - TypeScript: `verbatimModuleSyntax: true` → 型は `import type` を使う
 - APIのベースパスは `/api`
-- Viteのプロキシで `/api` → バックエンド（port 3001）に転送
+- ローカル開発: Viteのプロキシで `/api` → バックエンド（port 3001）に転送
+- 本番: フロントは `VITE_API_BASE` で Render 上のバックエンドURLを直接参照
 
 ## 起動方法
 ```bash
