@@ -1,34 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import type { Notification } from "../types.ts";
-import * as api from "../api.ts";
+import { useNotifications } from "../NotificationContext.tsx";
 
 interface Props {
   onOpenIssue: (projectKey: string, issueKey: string) => void;
 }
 
-const POLL_INTERVAL_MS = 60_000; // 1分ごとにポーリング
-
 export default function NotificationBell({ onOpenIssue }: Props) {
-  const [items, setItems] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { items, unreadCount, markRead, markAllRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  const load = async () => {
-    try {
-      const res = await api.fetchNotifications();
-      setItems(res.items);
-      setUnreadCount(res.unreadCount);
-    } catch {
-      // 認証エラー等は無視（apiモジュール側で処理される）
-    }
-  };
-
-  useEffect(() => {
-    load();
-    const id = setInterval(load, POLL_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -40,9 +21,7 @@ export default function NotificationBell({ onOpenIssue }: Props) {
 
   const handleClickItem = async (n: Notification) => {
     if (!n.is_read) {
-      await api.markNotificationRead(n.id);
-      setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
-      setUnreadCount((c) => Math.max(0, c - 1));
+      await markRead(n.id);
     }
     if (n.project_key && n.issue_key) {
       onOpenIssue(n.project_key, n.issue_key);
@@ -52,9 +31,7 @@ export default function NotificationBell({ onOpenIssue }: Props) {
 
   const handleReadAll = async () => {
     if (unreadCount === 0) return;
-    await api.markAllNotificationsRead();
-    setItems((prev) => prev.map((x) => ({ ...x, is_read: true })));
-    setUnreadCount(0);
+    await markAllRead();
   };
 
   return (
@@ -76,7 +53,7 @@ export default function NotificationBell({ onOpenIssue }: Props) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-50 max-h-[480px] flex flex-col">
+        <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white text-gray-800 rounded-lg shadow-xl border border-gray-200 z-50 max-h-[480px] flex flex-col">
           <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200">
             <span className="text-sm font-semibold">通知</span>
             <button

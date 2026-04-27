@@ -4,6 +4,7 @@ import { STATUSES, PRIORITIES, TYPES, RESOLUTIONS } from "../types.ts";
 import * as api from "../api.ts";
 import Avatar from "./Avatar.tsx";
 import MentionTextarea from "./MentionTextarea.tsx";
+import MobileMenuButton from "./MobileMenuButton.tsx";
 import { renderWithMentions } from "../utils/mentions.tsx";
 
 interface Props {
@@ -17,11 +18,12 @@ interface Props {
   onIssueDeleted: () => void;
   onOpenIssue: (issue: Issue) => void;
   onAddChildIssue: (parentIssueId: number) => void;
+  onOpenMenu?: () => void;
 }
 
 export default function IssueDetailPage({
   issue, issues, users, currentUserId, projectId,
-  onBack, onIssueUpdated, onIssueDeleted, onOpenIssue, onAddChildIssue,
+  onBack, onIssueUpdated, onIssueDeleted, onOpenIssue, onAddChildIssue, onOpenMenu,
 }: Props) {
   // 編集状態
   const [editing, setEditing] = useState(false);
@@ -140,7 +142,8 @@ export default function IssueDetailPage({
       )}
 
       {/* ヘッダー */}
-      <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-200 bg-white">
+      <div className="flex items-center gap-3 px-4 md:px-6 py-3 border-b border-gray-200 bg-white">
+        {onOpenMenu && <MobileMenuButton onClick={onOpenMenu} />}
         <button onClick={onBack} className="text-gray-400 hover:text-gray-600 text-sm">
           ← 戻る
         </button>

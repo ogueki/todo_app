@@ -12,6 +12,8 @@ import FilterBar, { defaultFilters } from "./components/FilterBar.tsx";
 import type { Filters } from "./components/FilterBar.tsx";
 import LoginPage from "./components/LoginPage.tsx";
 import SignupPage from "./components/SignupPage.tsx";
+import MobileMenuButton from "./components/MobileMenuButton.tsx";
+import { NotificationProvider } from "./NotificationContext.tsx";
 
 type ViewMode = "list" | "board";
 
@@ -70,11 +72,13 @@ export default function App() {
 
   // 認証済み
   return (
-    <AuthenticatedApp
-      currentUser={currentUser}
-      onLogout={handleLogout}
-      onUserUpdated={setCurrentUser}
-    />
+    <NotificationProvider>
+      <AuthenticatedApp
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onUserUpdated={setCurrentUser}
+      />
+    </NotificationProvider>
   );
 }
 
@@ -223,8 +227,20 @@ function EmptyShell({ currentUser, projects, setProjects, setUsers, onLogout, on
           onCloseMobile={() => setSidebarOpen(false)}
         />
       </div>
-      <div className="flex-1 flex items-center justify-center text-gray-400">
-        <p>プロジェクトを作成してください</p>
+      <div className="flex-1 flex flex-col min-w-0 bg-white">
+        <div className="flex items-center gap-2 px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 bg-white">
+          <MobileMenuButton onClick={() => setSidebarOpen(true)} />
+          <h2 className="text-lg md:text-xl font-bold">プロジェクト</h2>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400 px-4">
+          <p>プロジェクトがありません</p>
+          <button
+            onClick={() => setShowProjectModal(true)}
+            className="px-4 py-2 bg-brand-400 text-white text-sm rounded-md hover:bg-brand-500 transition-colors"
+          >
+            プロジェクトを作成
+          </button>
+        </div>
       </div>
 
       {showProjectModal && (
@@ -407,27 +423,22 @@ function ProjectShell({ currentUser, projects, users, projectsLoaded, setProject
               setNewIssueParentId(parentId);
               setShowIssueModal(true);
             }}
+            onOpenMenu={() => setSidebarOpen(true)}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-400">読み込み中...</div>
+          <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex items-center gap-2 px-4 md:px-6 py-3 border-b border-gray-200 bg-white">
+              <MobileMenuButton onClick={() => setSidebarOpen(true)} />
+            </div>
+            <div className="flex-1 flex items-center justify-center text-gray-400">読み込み中...</div>
+          </div>
         )
       ) : (
         <div className="flex-1 flex flex-col min-w-0 bg-white">
           {/* ヘッダー */}
           <div className="flex items-center justify-between gap-2 px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 bg-white flex-wrap">
             <div className="flex items-center gap-2 md:gap-3 min-w-0">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="md:hidden text-gray-500 hover:text-gray-700 p-1 -ml-1"
-                title="メニューを開く"
-                aria-label="メニューを開く"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <line x1="3" y1="12" x2="21" y2="12" />
-                  <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-              </button>
+              <MobileMenuButton onClick={() => setSidebarOpen(true)} />
               <h2
                 className="text-lg md:text-xl font-bold cursor-pointer hover:text-brand-500 transition-colors truncate"
                 onClick={() => {

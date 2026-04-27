@@ -15,6 +15,9 @@ export default function KanbanBoard({ issues, users, onStatusChange, onClickIssu
   const [dragOverColumn, setDragOverColumn] = useState<number | null>(null);
   const dragCounter = useRef<Record<number, number>>({});
 
+  // モバイル用 ステータス変更シート
+  const [moveSheetIssue, setMoveSheetIssue] = useState<Issue | null>(null);
+
   // 完了理由ダイアログ
   const [resolutionDialog, setResolutionDialog] = useState<{ issueId: number } | null>(null);
   const [selectedResolution, setSelectedResolution] = useState<number | "">("");
@@ -41,16 +44,20 @@ export default function KanbanBoard({ issues, users, onStatusChange, onClickIssu
 
   const handleDrop = (statusId: number) => {
     if (draggedIssue && draggedIssue.status_id !== statusId) {
-      if (statusId === 4) {
-        setResolutionDialog({ issueId: draggedIssue.id });
-        setSelectedResolution("");
-      } else {
-        onStatusChange(draggedIssue.id, statusId);
-      }
+      changeStatus(draggedIssue.id, statusId);
     }
     setDraggedIssue(null);
     setDragOverColumn(null);
     dragCounter.current = {};
+  };
+
+  const changeStatus = (issueId: number, statusId: number) => {
+    if (statusId === 4) {
+      setResolutionDialog({ issueId });
+      setSelectedResolution("");
+    } else {
+      onStatusChange(issueId, statusId);
+    }
   };
 
   const handleResolutionConfirm = () => {
@@ -112,6 +119,14 @@ export default function KanbanBoard({ issues, users, onStatusChange, onClickIssu
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-mono text-xs text-gray-400">{issue.issue_key}</span>
                       <span className="text-xs font-medium" style={{ color: priority.color }}>●</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setMoveSheetIssue(issue); }}
+                        className="md:hidden ml-auto text-xs text-brand-500 hover:text-brand-700 px-1.5 py-0.5 border border-brand-200 rounded"
+                        title="ステータスを変更"
+                        aria-label="ステータスを変更"
+                      >
+                        移動
+                      </button>
                     </div>
                     <p className="text-sm font-medium text-gray-800 mb-2 line-clamp-2">{issue.subject}</p>
                     <div className="flex items-center justify-between">
@@ -135,6 +150,53 @@ export default function KanbanBoard({ issues, users, onStatusChange, onClickIssu
         );
       })}
     </div>
+
+    {/* モバイル用 ステータス変更シート */}
+    {moveSheetIssue && (
+      <div
+        className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+        onClick={() => setMoveSheetIssue(null)}
+      >
+        <div
+          className="bg-white rounded-t-lg sm:rounded-lg shadow-xl w-full sm:max-w-sm sm:mx-4 p-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">
+            ステータスを変更
+            <span className="ml-2 font-mono text-xs text-gray-400">{moveSheetIssue.issue_key}</span>
+          </h3>
+          <div className="space-y-1">
+            {STATUSES.map((s) => {
+              const current = s.id === moveSheetIssue.status_id;
+              return (
+                <button
+                  key={s.id}
+                  disabled={current}
+                  onClick={() => {
+                    const id = moveSheetIssue.id;
+                    setMoveSheetIssue(null);
+                    changeStatus(id, s.id);
+                  }}
+                  className={`w-full text-left px-3 py-2.5 rounded-md text-sm flex items-center gap-2 transition-colors ${
+                    current ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "hover:bg-brand-50"
+                  }`}
+                >
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                  <span className="flex-1">{s.name}</span>
+                  {current && <span className="text-xs text-gray-400">現在</span>}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => setMoveSheetIssue(null)}
+            className="w-full mt-3 px-4 py-2 text-sm text-gray-500 hover:text-gray-700"
+          >
+            キャンセル
+          </button>
+        </div>
+      </div>
+    )}
 
     {/* 完了理由ダイアログ */}
     {resolutionDialog && (
