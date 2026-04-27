@@ -221,7 +221,7 @@ Backlog風のプロジェクト・タスク管理WEBアプリケーション。
 | POST | /api/auth/signup | サインアップ（ユーザー登録＋JWT発行） |
 | GET | /api/auth/me | ログインユーザー情報取得 |
 
-**認証方式**: JWT（Bearer トークン、有効期限7日）。`/api/auth` と `/api/health` 以外の全APIは認証必須。トークンはフロントエンドの `localStorage` に保存し、401レスポンス時に自動ログアウト。パスワードは平文比較（MVP簡易実装）。
+**認証方式**: JWT（Bearer トークン、有効期限7日）。`/api/auth` と `/api/health` 以外の全APIは認証必須。トークンはフロントエンドの `localStorage` に保存し、401レスポンス時に自動ログアウト。パスワードは bcrypt（cost=10）でハッシュ化して保存・照合する。
 
 ---
 
