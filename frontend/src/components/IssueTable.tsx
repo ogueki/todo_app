@@ -1,12 +1,12 @@
 import { useMemo } from "react";
-import type { Issue, User } from "../types.ts";
+import type { Issue, UserSummary } from "../types.ts";
 import { STATUSES, PRIORITIES, TYPES } from "../types.ts";
 import Avatar from "./Avatar.tsx";
 import TypeIcon from "./TypeIcon.tsx";
 
 interface Props {
   issues: Issue[];
-  users: User[];
+  users: UserSummary[];
   onClickIssue: (issue: Issue) => void;
 }
 

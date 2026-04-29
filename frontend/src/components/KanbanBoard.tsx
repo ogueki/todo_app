@@ -1,11 +1,11 @@
 import { useState, useRef } from "react";
-import type { Issue, User } from "../types.ts";
+import type { Issue, UserSummary } from "../types.ts";
 import { STATUSES, PRIORITIES, RESOLUTIONS } from "../types.ts";
 import Avatar from "./Avatar.tsx";
 
 interface Props {
   issues: Issue[];
-  users: User[];
+  users: UserSummary[];
   onStatusChange: (issueId: number, statusId: number, resolutionId?: number | null) => void;
   onClickIssue: (issue: Issue) => void;
 }

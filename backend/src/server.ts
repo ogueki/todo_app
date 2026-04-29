@@ -212,7 +212,7 @@ async function createMentionNotifications(opts: {
 // --- ユーザー ---
 app.get("/api/users", async (_req: Request, res: Response) => {
   try {
-    const users = await db.query("SELECT id, name, email, avatar_url, created_at FROM users ORDER BY id");
+    const users = await db.query("SELECT id, name, avatar_url FROM users ORDER BY id");
     res.json(users);
   } catch (e) {
     console.error(e);

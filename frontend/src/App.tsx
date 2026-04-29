@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Routes, Route, Navigate, useNavigate, useParams, useLocation } from "react-router-dom";
-import type { Project, Issue, User } from "./types.ts";
+import type { Project, Issue, User, UserSummary } from "./types.ts";
 import * as api from "./api.ts";
 import Sidebar from "./components/Sidebar.tsx";
 import IssueTable from "./components/IssueTable.tsx";
@@ -91,7 +91,7 @@ interface AuthenticatedAppProps {
 function AuthenticatedApp({ currentUser, onLogout, onUserUpdated }: AuthenticatedAppProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserSummary[]>([]);
 
   // 初期データ読み込み
   useEffect(() => {
@@ -172,9 +172,9 @@ function AuthenticatedApp({ currentUser, onLogout, onUserUpdated }: Authenticate
 interface ShellProps {
   currentUser: User;
   projects: Project[];
-  users: User[];
+  users: UserSummary[];
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
-  setUsers: React.Dispatch<React.SetStateAction<User[]>>;
+  setUsers: React.Dispatch<React.SetStateAction<UserSummary[]>>;
   onLogout: () => void;
   onUserUpdated: (user: User) => void;
 }

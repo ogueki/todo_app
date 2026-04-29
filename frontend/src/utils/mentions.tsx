@@ -1,16 +1,16 @@
 import type { ReactNode } from "react";
-import type { User } from "../types.ts";
+import type { UserSummary } from "../types.ts";
 
 // テキスト中の @ユーザー名 を <span> でハイライトしたReactNode配列を返す
 // サーバー側 extractMentionedUserIds と同じ走査ロジック（名前長い順優先・@直後一致）
-export function renderWithMentions(text: string, users: User[]): ReactNode[] {
+export function renderWithMentions(text: string, users: UserSummary[]): ReactNode[] {
   const sorted = [...users].sort((a, b) => b.name.length - a.name.length);
   const nodes: ReactNode[] = [];
   let buffer = "";
   let key = 0;
   for (let i = 0; i < text.length; i++) {
     if (text[i] === "@") {
-      let matched: User | null = null;
+      let matched: UserSummary | null = null;
       for (const u of sorted) {
         if (text.startsWith(u.name, i + 1)) {
           matched = u;

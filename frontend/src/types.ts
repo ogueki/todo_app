@@ -5,6 +5,12 @@ export interface User {
   avatar_url?: string | null;
 }
 
+export interface UserSummary {
+  id: number;
+  name: string;
+  avatar_url?: string | null;
+}
+
 export interface Project {
   id: number;
   project_key: string;

@@ -1,4 +1,4 @@
-import type { User } from "../types.ts";
+import type { UserSummary } from "../types.ts";
 import { STATUSES, PRIORITIES, TYPES } from "../types.ts";
 
 export interface Filters {
@@ -21,7 +21,7 @@ export const defaultFilters: Filters = {
 
 interface Props {
   filters: Filters;
-  users: User[];
+  users: UserSummary[];
   onChange: (filters: Filters) => void;
 }
 

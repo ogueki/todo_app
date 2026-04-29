@@ -1,4 +1,4 @@
-import type { User, Project, Issue, Comment, Notification } from "./types.ts";
+import type { User, UserSummary, Project, Issue, Comment, Notification } from "./types.ts";
 
 const BASE = import.meta.env.VITE_API_BASE || "/api";
 
@@ -46,7 +46,7 @@ export const signup = (name: string, email: string, password: string) =>
 export const fetchMe = () => request<User>("/auth/me");
 
 // ユーザー
-export const fetchUsers = () => request<User[]>("/users");
+export const fetchUsers = () => request<UserSummary[]>("/users");
 
 // プロジェクト
 export const fetchProjects = () => request<Project[]>("/projects");

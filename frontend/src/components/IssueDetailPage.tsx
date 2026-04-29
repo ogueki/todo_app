@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { Issue, User, Comment } from "../types.ts";
+import type { Issue, UserSummary, Comment } from "../types.ts";
 import { STATUSES, PRIORITIES, TYPES, RESOLUTIONS } from "../types.ts";
 import * as api from "../api.ts";
 import Avatar from "./Avatar.tsx";
@@ -10,7 +10,7 @@ import { renderWithMentions } from "../utils/mentions.tsx";
 interface Props {
   issue: Issue;
   issues: Issue[];
-  users: User[];
+  users: UserSummary[];
   currentUserId: number;
   projectId: number;
   onBack: () => void;

@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import type { User } from "../types.ts";
+import type { UserSummary } from "../types.ts";
 
 interface Props {
   value: string;
   onChange: (value: string) => void;
-  users: User[];
+  users: UserSummary[];
   placeholder?: string;
   rows?: number;
   className?: string;
@@ -13,7 +13,7 @@ interface Props {
 // @ 入力時にユーザー候補をサジェスト表示するtextarea
 export default function MentionTextarea({ value, onChange, users, placeholder, rows = 3, className = "" }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [suggestions, setSuggestions] = useState<User[]>([]);
+  const [suggestions, setSuggestions] = useState<UserSummary[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [mentionStart, setMentionStart] = useState(-1); // @ の位置（-1なら非表示）
 
