@@ -302,6 +302,12 @@ Backlog風のプロジェクト・タスク管理WEBアプリケーション。
 - Supabase Transaction Pooler（port 6543）経由で接続する
 - `pg.Pool` の `max` は 3 に固定
 
+### RLS（Row Level Security）
+- `public` スキーマの全テーブル（users / projects / issues / comments / notifications）で **RLS有効・ポリシー無し**
+- Supabaseが自動公開する PostgREST API（anon / authenticated ロール）からの読み書きを全面ブロックするため
+- バックエンドは `DATABASE_URL` の `postgres` ロール（BYPASSRLS）で接続するため、サーバー側のクエリは従来通り動作
+- 設定SQL: `migrations/004_enable_rls.sql`
+
 ### サーバー設定
 - Express body limit: 4MB（アバターBase64アップロード許容）
 - CORS: `CORS_ORIGIN`（カンマ区切り）が指定されていればそのオリジンのみ許可、未指定なら全開（ローカル開発用フォールバック）
