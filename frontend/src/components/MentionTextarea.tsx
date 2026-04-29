@@ -44,7 +44,7 @@ export default function MentionTextarea({ value, onChange, users, placeholder, r
     updateSuggestions(newValue, e.target.selectionStart);
   };
 
-  const insertMention = (user: User) => {
+  const insertMention = (user: UserSummary) => {
     if (mentionStart < 0 || !textareaRef.current) return;
     const ta = textareaRef.current;
     const before = value.slice(0, mentionStart);
